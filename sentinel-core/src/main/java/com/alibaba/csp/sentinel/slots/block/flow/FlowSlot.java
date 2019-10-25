@@ -154,7 +154,7 @@ public class FlowSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
         AssertUtil.notNull(checker, "flow checker should not be null");
         this.checker = checker;
     }
-
+    //流量检查
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, DefaultNode node, int count,
                       boolean prioritized, Object... args) throws Throwable {

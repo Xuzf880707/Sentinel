@@ -110,35 +110,46 @@ public class ContextUtil {
      * @return The invocation context of the current thread
      */
     public static Context enter(String name, String origin) {
+        //上下文名称校验
         if (Constants.CONTEXT_DEFAULT_NAME.equals(name)) {
             throw new ContextNameDefineException(
                 "The " + Constants.CONTEXT_DEFAULT_NAME + " can't be permit to defined!");
         }
+        //name是上下文
+        //origin是调用者
         return trueEnter(name, origin);
     }
 
+    /***
+     * 创建一个上下文，并存放到ThreadLocal
+     * @param name 上下文名称
+     * @param origin 调用发起者
+     * @return
+     */
     protected static Context trueEnter(String name, String origin) {
-        Context context = contextHolder.get();
+        Context context = contextHolder.get();//从ThreadLocal里获取Context
         if (context == null) {
+            //检查本地缓存，是否存在name对应的DefaultNode。。key：上下文名称，value是一个入口节点EntranceNode
             Map<String, DefaultNode> localCacheNameMap = contextNameNodeMap;
             DefaultNode node = localCacheNameMap.get(name);
-            if (node == null) {
+            if (node == null) {//第一次enter这个name
                 if (localCacheNameMap.size() > Constants.MAX_CONTEXT_NAME_SIZE) {
                     setNullContext();
                     return NULL_CONTEXT;
                 } else {
                     try {
                         LOCK.lock();
-                        node = contextNameNodeMap.get(name);
+                        node = contextNameNodeMap.get(name);//检查本地内存
                         if (node == null) {
                             if (contextNameNodeMap.size() > Constants.MAX_CONTEXT_NAME_SIZE) {
                                 setNullContext();
                                 return NULL_CONTEXT;
                             } else {
+                                //根据上下文名称初始化一个入口节点EntranceNode
                                 node = new EntranceNode(new StringResourceWrapper(name, EntryType.IN), null);
-                                // Add entrance node.
+                                // Add entrance node. 把EntranceNode设置为Root节点的子节点
                                 Constants.ROOT.addChild(node);
-
+                                //更新本地缓存
                                 Map<String, DefaultNode> newMap = new HashMap<>(contextNameNodeMap.size() + 1);
                                 newMap.putAll(contextNameNodeMap);
                                 newMap.put(name, node);
@@ -150,6 +161,7 @@ public class ContextUtil {
                     }
                 }
             }
+            //返回当前线程的上下文，并在上下文中设置orign
             context = new Context(node, name);
             context.setOrigin(origin);
             contextHolder.set(context);

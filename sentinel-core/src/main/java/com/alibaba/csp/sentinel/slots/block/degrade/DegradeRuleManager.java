@@ -68,7 +68,7 @@ public final class DegradeRuleManager {
             currentProperty = property;
         }
     }
-
+    //熔断降级检查
     public static void checkDegrade(ResourceWrapper resource, Context context, DefaultNode node, int count)
         throws BlockException {
 

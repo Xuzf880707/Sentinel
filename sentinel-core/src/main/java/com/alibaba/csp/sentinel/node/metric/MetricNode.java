@@ -26,19 +26,38 @@ import java.util.Date;
  * @author Carpenter Lee
  */
 public class MetricNode {
-
+    /**
+     * 时间戳
+     */
     private long timestamp;
+    /**
+     * 通过的qps
+     */
     private long passQps;
+    /***
+     * 被阻塞QPS
+     */
     private long blockQps;
+    /***
+     * 成功的QPS
+     */
     private long successQps;
+    /***
+     * 异常的QPS
+     */
     private long exceptionQps;
+    /***
+     * 相应时间
+     */
     private long rt;
 
     /**
      * @since 1.5.0
      */
     private long occupiedPassQps;
-
+    /***
+     * 资源名称
+     */
     private String resource;
 
     public long getTimestamp() {

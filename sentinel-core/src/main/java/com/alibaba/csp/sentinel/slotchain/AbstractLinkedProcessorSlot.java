@@ -33,6 +33,16 @@ public abstract class AbstractLinkedProcessorSlot<T> implements ProcessorSlot<T>
         }
     }
 
+    /**
+     *
+     * @param context 线程对应的线程上下文
+     * @param resourceWrapper 资源包装对象
+     * @param o
+     * @param count 需要的资源数
+     * @param prioritized 是否优先
+     * @param args
+     * @throws Throwable
+     */
     @SuppressWarnings("unchecked")
     void transformEntry(Context context, ResourceWrapper resourceWrapper, Object o, int count, boolean prioritized, Object... args)
         throws Throwable {

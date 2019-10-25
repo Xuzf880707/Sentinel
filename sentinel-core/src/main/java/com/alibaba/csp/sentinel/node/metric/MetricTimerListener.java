@@ -36,14 +36,21 @@ public class MetricTimerListener implements Runnable {
     private static final MetricWriter metricWriter = new MetricWriter(SentinelConfig.singleMetricFileSize(),
         SentinelConfig.totalMetricFileCount());
 
+    /***
+     *
+     */
     @Override
     public void run() {
+        /***
+         * key：时间
+         * values：一个列表，列表元素是各个资源的统计信息
+         */
         Map<Long, List<MetricNode>> maps = new TreeMap<Long, List<MetricNode>>();
         for (Entry<ResourceWrapper, ClusterNode> e : ClusterBuilderSlot.getClusterNodeMap().entrySet()) {
-            String name = e.getKey().getName();
-            ClusterNode node = e.getValue();
-            Map<Long, MetricNode> metrics = node.metrics();
-            aggregate(maps, metrics, name);
+            String name = e.getKey().getName();//获得资源名称
+            ClusterNode node = e.getValue();//获得集群节点
+            Map<Long, MetricNode> metrics = node.metrics();//从节点上获得metric信息
+            aggregate(maps, metrics, name);//统计
         }
         aggregate(maps, Constants.ENTRY_NODE.metrics(), Constants.TOTAL_IN_RESOURCE_NAME);
         if (!maps.isEmpty()) {
@@ -59,7 +66,7 @@ public class MetricTimerListener implements Runnable {
 
     private void aggregate(Map<Long, List<MetricNode>> maps, Map<Long, MetricNode> metrics, String resourceName) {
         for (Entry<Long, MetricNode> entry : metrics.entrySet()) {
-            long time = entry.getKey();
+            long time = entry.getKey();//资源时间点
             MetricNode metricNode = entry.getValue();
             metricNode.setResource(resourceName);
             if (maps.get(time) == null) {

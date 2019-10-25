@@ -69,6 +69,16 @@ public class DefaultProcessorSlotChain extends ProcessorSlotChain {
         return first.getNext();
     }
 
+    /***
+     *
+     * @param context         current {@link Context} 线程上下文
+     * @param resourceWrapper current resource 资源
+     * @param t
+     * @param count           tokens needed 要获得的资源个数
+     * @param prioritized     whether the entry is prioritized
+     * @param args            parameters of the original call
+     * @throws Throwable
+     */
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, Object t, int count, boolean prioritized, Object... args)
         throws Throwable {

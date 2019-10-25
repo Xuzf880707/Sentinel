@@ -126,9 +126,10 @@ public class NodeSelectorSlot extends AbstractLinkedProcessorSlot<Object> {
 
     /**
      * {@link DefaultNode}s of the same resource in different context.
+     * key：context上下文名称
      */
     private volatile Map<String, DefaultNode> map = new HashMap<String, DefaultNode>(10);
-
+    //负责收集资源的路径，并将这些资源的调用路径，以树状结构存储起来，用于根据调用路径来限流降级；
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, Object obj, int count, boolean prioritized, Object... args)
         throws Throwable {
@@ -149,7 +150,9 @@ public class NodeSelectorSlot extends AbstractLinkedProcessorSlot<Object> {
          * so what is the fastest way to get total statistics of the same resource?
          * The answer is all {@link DefaultNode}s with same resource name share one
          * {@link ClusterNode}. See {@link ClusterBuilderSlot} for detail.
+         * 相同的资源共享同一个规则链，无论是在哪个context里
          */
+        //根据resource名称获得DefaultNode
         DefaultNode node = map.get(context.getName());
         if (node == null) {
             synchronized (this) {

@@ -36,6 +36,12 @@ class CtEntry extends Entry {
     protected ProcessorSlot<Object> chain;
     protected Context context;
 
+    /***
+     *
+     * @param resourceWrapper 资源包装对象
+     * @param chain 限流的处理链路
+     * @param context 线程上下文
+     */
     CtEntry(ResourceWrapper resourceWrapper, ProcessorSlot<Object> chain, Context context) {
         super(resourceWrapper);
         this.chain = chain;

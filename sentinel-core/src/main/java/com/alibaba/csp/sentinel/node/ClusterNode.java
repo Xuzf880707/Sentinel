@@ -55,6 +55,7 @@ public class ClusterNode extends StatisticNode {
     private final ReentrantLock lock = new ReentrantLock();
 
     /**
+     *
      * <p>Get {@link Node} of the specific origin. Usually the origin is the Service Consumer's app name.</p>
      * <p>If the origin node for given origin is absent, then a new {@link StatisticNode}
      * for the origin will be created and returned.</p>
@@ -62,6 +63,7 @@ public class ClusterNode extends StatisticNode {
      * @param origin The caller's name, which is designated in the {@code parameter} parameter
      *               {@link ContextUtil#enter(String name, String origin)}.
      * @return the {@link Node} of the specific origin
+     * 则用于存储资源的统计信息以及调用者信息，例如该资源的 RT, QPS, thread count 等等，这些信息将用作为多维度限流，降级的依据；
      */
     public Node getOrCreateOriginNode(String origin) {
         StatisticNode statisticNode = originCountMap.get(origin);
@@ -69,7 +71,7 @@ public class ClusterNode extends StatisticNode {
             try {
                 lock.lock();
                 statisticNode = originCountMap.get(origin);
-                if (statisticNode == null) {
+                if (statisticNode == null) {//如果clusterNode的originCountMap不包含orgin，则新建一个
                     // The node is absent, create a new node for the origin.
                     statisticNode = new StatisticNode();
                     HashMap<String, StatisticNode> newMap = new HashMap<>(originCountMap.size() + 1);

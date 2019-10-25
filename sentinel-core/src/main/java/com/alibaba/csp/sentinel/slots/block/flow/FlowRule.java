@@ -38,8 +38,8 @@ import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 public class FlowRule extends AbstractRule {
 
     public FlowRule() {
-        super();
-        setLimitApp(RuleConstant.LIMIT_APP_DEFAULT);
+        super();//初始化默认参数
+        setLimitApp(RuleConstant.LIMIT_APP_DEFAULT);//设置默认的限制app名称
     }
 
     public FlowRule(String resourceName) {
@@ -146,7 +146,7 @@ public class FlowRule extends AbstractRule {
     }
 
     public FlowRule setCount(double count) {
-        this.count = count;
+        this.count = count;//设置每秒钟通过个数
         return this;
     }
 

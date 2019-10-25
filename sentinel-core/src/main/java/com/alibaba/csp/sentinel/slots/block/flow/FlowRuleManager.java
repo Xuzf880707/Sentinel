@@ -95,7 +95,7 @@ public class FlowRuleManager {
      * @param rules new rules to load.
      */
     public static void loadRules(List<FlowRule> rules) {
-        currentProperty.updateValue(rules);
+        currentProperty.updateValue(rules);//更新限流规则
     }
 
     static Map<String, List<FlowRule>> getFlowRuleMap() {

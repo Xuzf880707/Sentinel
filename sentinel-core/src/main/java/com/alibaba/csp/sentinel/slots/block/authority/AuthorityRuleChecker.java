@@ -31,6 +31,7 @@ final class AuthorityRuleChecker {
         String requester = context.getOrigin();
 
         // Empty origin or empty limitApp will pass.
+        //检查orgin是否为空，或者说limitApp为空
         if (StringUtil.isEmpty(requester) || StringUtil.isEmpty(rule.getLimitApp())) {
             return true;
         }

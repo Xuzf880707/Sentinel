@@ -65,6 +65,7 @@ public final class AuthorityRuleManager {
      *
      * @param rules list of authority rules
      */
+    //更新AuthorityRuleManager.SentinelProperty管理器中的规则信息
     public static void loadRules(List<AuthorityRule> rules) {
         currentProperty.updateValue(rules);
     }
@@ -94,34 +95,34 @@ public final class AuthorityRuleManager {
         @Override
         public void configUpdate(List<AuthorityRule> conf) {
             Map<String, Set<AuthorityRule>> rules = loadAuthorityConf(conf);
-
+            //清理旧的黑白名单规则
             authorityRules.clear();
-            if (rules != null) {
+            if (rules != null) {//维护新的黑白名单规则
                 authorityRules.putAll(rules);
             }
             RecordLog.info("[AuthorityRuleManager] Authority rules received: " + authorityRules);
         }
-
+        //从配置的规则列表中加载配置的黑白名单规则，如果同一个资源配置了多个的话，只有第一个才会生效
         private Map<String, Set<AuthorityRule>> loadAuthorityConf(List<AuthorityRule> list) {
             Map<String, Set<AuthorityRule>> newRuleMap = new ConcurrentHashMap<>();
 
             if (list == null || list.isEmpty()) {
                 return newRuleMap;
             }
-
+            //遍历配置的黑白名单规则
             for (AuthorityRule rule : list) {
                 if (!isValidRule(rule)) {
                     RecordLog.warn("[AuthorityRuleManager] Ignoring invalid authority rule when loading new rules: " + rule);
                     continue;
                 }
-
+                //检查配置的限制的app名称
                 if (StringUtil.isBlank(rule.getLimitApp())) {
                     rule.setLimitApp(RuleConstant.LIMIT_APP_DEFAULT);
                 }
-
+                //获得规则限制的资源名称
                 String identity = rule.getResource();
                 Set<AuthorityRule> ruleSet = newRuleMap.get(identity);
-                // putIfAbsent
+                // putIfAbsent 所以对同一个资源，只能配置一次黑白名单
                 if (ruleSet == null) {
                     ruleSet = new HashSet<>();
                     ruleSet.add(rule);

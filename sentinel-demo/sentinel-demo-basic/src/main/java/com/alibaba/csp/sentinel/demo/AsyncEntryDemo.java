@@ -183,7 +183,7 @@ public class AsyncEntryDemo {
         ContextUtil.enter("async-context", "originA");
         Entry entry = null;
         try {
-            entry = SphU.entry("test-top");
+            entry = SphU.entry("test-top");//设置资源名称，对应resourcename
             System.out.println("Do something...");
             service.doAsyncThenSync();
         } catch (BlockException ex) {
@@ -203,10 +203,10 @@ public class AsyncEntryDemo {
         // Rule 1 won't take effect as the limitApp doesn't match.
         FlowRule rule1 = new FlowRule()
             .setResource("test-another-sync-in-async")
-            .setLimitApp("originB")
+            .setLimitApp("originB")//设置限制的app
             .as(FlowRule.class)
             .setCount(4)
-            .setGrade(RuleConstant.FLOW_GRADE_QPS);
+            .setGrade(RuleConstant.FLOW_GRADE_QPS);//限制规则是QPS，默认也是QPS
         // Rule 2 will take effect.
         FlowRule rule2 = new FlowRule()
             .setResource("test-another-async")

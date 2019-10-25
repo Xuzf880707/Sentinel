@@ -114,9 +114,18 @@ public class CtSph implements Sph {
         return asyncEntryWithPriorityInternal(resourceWrapper, count, false, args);
     }
 
+    /***
+     *
+     * @param resourceWrapper 资源
+     * @param count 需要的信号量数
+     * @param prioritized  是否优先处理
+     * @param args
+     * @return
+     * @throws BlockException
+     */
     private Entry entryWithPriority(ResourceWrapper resourceWrapper, int count, boolean prioritized, Object... args)
         throws BlockException {
-        Context context = ContextUtil.getContext();
+        Context context = ContextUtil.getContext();//从线程中获得上下文
         if (context instanceof NullContext) {
             // The {@link NullContext} indicates that the amount of context has exceeded the threshold,
             // so here init the entry only. No rule checking will be done.
@@ -132,7 +141,7 @@ public class CtSph implements Sph {
         if (!Constants.ON) {
             return new CtEntry(resourceWrapper, null, context);
         }
-
+        //将该资源绑定ProcessorSlotChain链，后续在获得一个资源的时候，需要沿着链路做验证
         ProcessorSlot<Object> chain = lookProcessChain(resourceWrapper);
 
         /*
@@ -144,7 +153,7 @@ public class CtSph implements Sph {
         }
 
         Entry e = new CtEntry(resourceWrapper, chain, context);
-        try {
+        try {//开始遍历责任chain链，检查entry是否满足所有配置的规则
             chain.entry(context, resourceWrapper, null, count, prioritized, args);
         } catch (BlockException e1) {
             e.exit(count, args);
@@ -166,9 +175,9 @@ public class CtSph implements Sph {
      * otherwise no rules checking will do. In this condition, all requests will pass directly, with no checking
      * or exception.</p>
      *
-     * @param resourceWrapper resource name
-     * @param count           tokens needed
-     * @param args            arguments of user method call
+     * @param resourceWrapper resource name 资源名称
+     * @param count           tokens needed 需要的token数，也就是类似信号量数
+     * @param args            arguments of user method call 方法调用需要的参数
      * @return {@link Entry} represents this call
      * @throws BlockException if any rule's threshold is exceeded
      */
@@ -190,6 +199,11 @@ public class CtSph implements Sph {
      *
      * @param resourceWrapper target resource
      * @return {@link ProcessorSlotChain} of the resource
+     */
+    /***
+     *
+     * @param resourceWrapper
+     * @return
      */
     ProcessorSlot<Object> lookProcessChain(ResourceWrapper resourceWrapper) {
         ProcessorSlotChain chain = chainMap.get(resourceWrapper);
@@ -305,8 +319,19 @@ public class CtSph implements Sph {
         return entry(resource, count, args);
     }
 
+    /**
+     *
+     * @param name  the unique name for the protected resource 受保护的资源名称
+     * @param type  the resource is an inbound or an outbound method. This is used
+     *              to mark whether it can be blocked when the system is unstable
+     * @param count the count that the resource requires 需要获得资源个数
+     * @param args  the parameters of the method. It can also be counted by setting hot parameter rule
+     * @return
+     * @throws BlockException
+     */
     @Override
     public Entry entry(String name, EntryType type, int count, Object... args) throws BlockException {
+        //根据资源名称获得一个资源包装对象StringResourceWrapper
         StringResourceWrapper resource = new StringResourceWrapper(name, type);
         return entry(resource, count, args);
     }
@@ -314,7 +339,7 @@ public class CtSph implements Sph {
     @Override
     public AsyncEntry asyncEntry(String name, EntryType type, int count, Object... args) throws BlockException {
         StringResourceWrapper resource = new StringResourceWrapper(name, type);
-        return asyncEntryInternal(resource, count, args);
+        return asyncEntryInternal(resource, count, args);//异步参与内部统计
     }
 
     @Override

@@ -35,7 +35,7 @@ public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, DefaultNode node, int count, boolean prioritized, Object... args)
         throws Throwable {
-        checkBlackWhiteAuthority(resourceWrapper, context);
+        checkBlackWhiteAuthority(resourceWrapper, context);//检查用户白名单
         fireEntry(context, resourceWrapper, node, count, prioritized, args);
     }
 
@@ -45,6 +45,7 @@ public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
     }
 
     void checkBlackWhiteAuthority(ResourceWrapper resource, Context context) throws AuthorityException {
+        //获得配置的黑白名单的规则
         Map<String, Set<AuthorityRule>> authorityRules = AuthorityRuleManager.getAuthorityRules();
 
         if (authorityRules == null) {
