@@ -82,17 +82,26 @@ public class ContextUtil {
 
     /**
      * <p>
+     *     进入调用上线问，它将作为被标记为调用链的入口，context被包装为一个ThreadLocal，这样可以保证每个线程都有它自己的context
+     *     如果一个线程没有context的话，则新建一个
      * Enter the invocation context, which marks as the entrance of an invocation chain.
      * The context is wrapped with {@code ThreadLocal}, meaning that each thread has it's own {@link Context}.
      * New context will be created if current thread doesn't have one.
      * </p>
      * <p>
+     *     每个context都会绑定一个入口节点，它作为调用连的一个入口统计节点。如果context不包含这样的入口节点，则会新建一个。
+     *     注意相同的上下文名称会共享入口节点
      * A context will be bound with an {@link EntranceNode}, which represents the entrance statistic node
      * of the invocation chain. New {@link EntranceNode} will be created if
      * current context does't have one. Note that same context name will share
      * same {@link EntranceNode} globally.
      * </p>
      * <p>
+     *      ClusterBuilderSlot会帮我们创建一个起始节点。
+     *       注意：每个不同资源下的不同orign会导致创建不同的新节点，这意味着创建的来源统计节点总数将为：不同资源名称数量*不同来源计数。
+     *       因此，当来源太多时，应仔细考虑内存占用。
+     *
+     *
      * The origin node will be created in {@link com.alibaba.csp.sentinel.slots.clusterbuilder.ClusterBuilderSlot}.
      * Note that each distinct {@code origin} of different resources will lead to creating different new
      * {@link Node}, meaning that total amount of created origin statistic nodes will be:<br/>

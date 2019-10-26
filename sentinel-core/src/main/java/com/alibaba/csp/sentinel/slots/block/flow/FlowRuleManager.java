@@ -57,6 +57,7 @@ public class FlowRuleManager {
 
     static {
         currentProperty.addListener(LISTENER);
+        //每分钟统计一次各个资源的分钟级的埋点信息
         SCHEDULER.scheduleAtFixedRate(new MetricTimerListener(), 0, 1, TimeUnit.SECONDS);
     }
 
@@ -91,7 +92,7 @@ public class FlowRuleManager {
 
     /**
      * Load {@link FlowRule}s, former rules will be replaced.
-     *
+     * 更新 flowRules，按照<resourceName,List<FlowRule> rules>的map,key是资源名称
      * @param rules new rules to load.
      */
     public static void loadRules(List<FlowRule> rules) {
@@ -125,9 +126,10 @@ public class FlowRuleManager {
     }
 
     private static final class FlowPropertyListener implements PropertyListener<List<FlowRule>> {
-
+        //给监听器分配规则
         @Override
         public void configUpdate(List<FlowRule> value) {
+            //整理规则列表，key为资源名称，value为资源对应的规则列表
             Map<String, List<FlowRule>> rules = FlowRuleUtil.buildFlowRuleMap(value);
             if (rules != null) {
                 flowRules.clear();

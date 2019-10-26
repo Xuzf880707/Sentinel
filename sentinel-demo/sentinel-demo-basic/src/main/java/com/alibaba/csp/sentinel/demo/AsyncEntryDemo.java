@@ -215,6 +215,8 @@ public class AsyncEntryDemo {
             .setCount(5)
             .setGrade(RuleConstant.FLOW_GRADE_QPS);
         List<FlowRule> ruleList = Arrays.asList(rule1, rule2);
+        //更新FlowRuleManager的全局变量flowRules
+        //这里要注意，如果连续多次loadRules的话，后面会覆盖前面的
         FlowRuleManager.loadRules(ruleList);
     }
 }

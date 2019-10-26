@@ -45,6 +45,11 @@ public class DynamicSentinelProperty<T> implements SentinelProperty<T> {
         listeners.remove(listener);
     }
 
+    /***
+     * 更新FlowRuleManager中的rule
+     * @param newValue the new value.
+     * @return
+     */
     @Override
     public boolean updateValue(T newValue) {
         if (isEqual(value, newValue)) {//如果旧的规则和新的规则一样，则不更新，返回false

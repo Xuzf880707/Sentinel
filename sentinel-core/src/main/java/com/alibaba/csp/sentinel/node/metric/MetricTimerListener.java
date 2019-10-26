@@ -37,7 +37,7 @@ public class MetricTimerListener implements Runnable {
         SentinelConfig.totalMetricFileCount());
 
     /***
-     *
+     *定时的统计资源的埋点信息，每分钟统计一次
      */
     @Override
     public void run() {
@@ -46,12 +46,16 @@ public class MetricTimerListener implements Runnable {
          * values：一个列表，列表元素是各个资源的统计信息
          */
         Map<Long, List<MetricNode>> maps = new TreeMap<Long, List<MetricNode>>();
+        /***
+         * 从每个资源对应的集群节点上，获取所有的时间周期的埋点信息
+         */
         for (Entry<ResourceWrapper, ClusterNode> e : ClusterBuilderSlot.getClusterNodeMap().entrySet()) {
             String name = e.getKey().getName();//获得资源名称
-            ClusterNode node = e.getValue();//获得集群节点
-            Map<Long, MetricNode> metrics = node.metrics();//从节点上获得metric信息
+            ClusterNode node = e.getValue();//获得资源名称对应的集群节点
+            Map<Long, MetricNode> metrics = node.metrics();//每个集群节点上获得资源的metric信息
             aggregate(maps, metrics, name);//统计
         }
+        //统计各个时间点资源的统计信息
         aggregate(maps, Constants.ENTRY_NODE.metrics(), Constants.TOTAL_IN_RESOURCE_NAME);
         if (!maps.isEmpty()) {
             for (Entry<Long, List<MetricNode>> entry : maps.entrySet()) {

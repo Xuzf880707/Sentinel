@@ -85,6 +85,8 @@ public final class FlowRuleUtil {
      * @param shouldSort    whether the rules should be sorted
      * @param <K>           type of key
      * @return constructed new flow rule map; empty map if list is null or empty, or no wanted rules
+     *
+     * 返回一个map，key是资源名称，value是为资源配置的规则，多个规则用list组装
      */
     public static <K> Map<K, List<FlowRule>> buildFlowRuleMap(List<FlowRule> list, Function<FlowRule, K> groupFunction,
                                                               Predicate<FlowRule> filter, boolean shouldSort) {
@@ -105,11 +107,11 @@ public final class FlowRuleUtil {
             if (StringUtil.isBlank(rule.getLimitApp())) {
                 rule.setLimitApp(RuleConstant.LIMIT_APP_DEFAULT);
             }
-            //维护规则对应的限流控制器
+            //为每个限流规则配置一个流量整形的实现，不同流控效果有不同算法
             TrafficShapingController rater = generateRater(rule);
-            rule.setRater(rater);
-
-            K key = groupFunction.apply(rule);//获得resource资源
+            rule.setRater(rater);//设置规则对应的流量整形实现
+            //相当于调用rule.getApplyResource
+            K key = groupFunction.apply(rule);//获得resource资源名称
             if (key == null) {//
                 continue;
             }
@@ -123,6 +125,7 @@ public final class FlowRuleUtil {
 
             flowRules.add(rule);//一个资源可以配置多个规则
         }
+        //把流控规则按照资源名称进行聚合放到一个map里
         Comparator<FlowRule> comparator = new FlowRuleComparator();
         for (Entry<K, Set<FlowRule>> entries : tmpMap.entrySet()) {
             List<FlowRule> rules = new ArrayList<>(entries.getValue());
