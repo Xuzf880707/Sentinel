@@ -52,15 +52,20 @@ public class FlowThreadDemo {
         initFlowRule();
 
         for (int i = 0; i < threadCount; i++) {
+            //启动100个线程
             Thread entryThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     while (true) {
                         Entry methodA = null;
                         try {
+                            //线程睡眠5毫秒
                             TimeUnit.MILLISECONDS.sleep(5);
+                            //当前线程尝试获得methodA
                             methodA = SphU.entry("methodA");
+                            //当前获得资源的methodA的线程数
                             activeThread.incrementAndGet();
+                            //尝试获得资源methodB
                             Entry methodB = SphU.entry("methodB");
                             TimeUnit.MILLISECONDS.sleep(methodBRunningTime);
                             methodB.exit();
@@ -73,6 +78,7 @@ public class FlowThreadDemo {
                             total.incrementAndGet();
                             if (methodA != null) {
                                 methodA.exit();
+                                //当前线程释放资源methodA,则对A的统计减少1
                                 activeThread.decrementAndGet();
                             }
                         }

@@ -22,21 +22,24 @@ import com.alibaba.csp.sentinel.context.Context;
  * @author jialiang.linjl
  */
 public class DefaultProcessorSlotChain extends ProcessorSlotChain {
-
+    //链表的头结点
     AbstractLinkedProcessorSlot<?> first = new AbstractLinkedProcessorSlot<Object>() {
 
         @Override
         public void entry(Context context, ResourceWrapper resourceWrapper, Object t, int count, boolean prioritized, Object... args)
             throws Throwable {
+            //传递执行entry
             super.fireEntry(context, resourceWrapper, t, count, prioritized, args);
         }
 
         @Override
         public void exit(Context context, ResourceWrapper resourceWrapper, int count, Object... args) {
+            //传递退出entry
             super.fireExit(context, resourceWrapper, count, args);
         }
 
     };
+    //链表的尾结点
     AbstractLinkedProcessorSlot<?> end = first;
 
     @Override

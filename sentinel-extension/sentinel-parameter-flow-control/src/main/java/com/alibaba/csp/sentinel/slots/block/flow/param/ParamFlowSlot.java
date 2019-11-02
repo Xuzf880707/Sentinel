@@ -29,6 +29,7 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
  * @author jialiang.linjl
  * @author Eric Zhao
  * @since 0.2.0
+ * 热点参数限流
  */
 public class ParamFlowSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
 

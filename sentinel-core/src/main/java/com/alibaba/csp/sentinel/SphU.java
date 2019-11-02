@@ -82,8 +82,14 @@ public class SphU {
      * @param name the unique name of the protected resource
      * @throws BlockException if the block criteria is met, eg. when any rule's threshold is exceeded.
      */
+    /**
+     *
+     * @param name 受保护的资源名称，必须是全局唯一
+     * @return
+     * @throws BlockException
+     */
     public static Entry entry(String name) throws BlockException {
-        //根据资源名称获得 Entry
+        //根据资源名称获得 Entry，默认只要获得一个信号量就好
         return Env.sph.entry(name, EntryType.OUT, 1, OBJECTS0);
     }
 

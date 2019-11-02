@@ -90,7 +90,7 @@ public class RtDegradeDemo {
 
         tick();
         initDegradeRule();
-
+        //启动100个线程
         for (int i = 0; i < threadCount; i++) {
             Thread entryThread = new Thread(new Runnable() {
 
@@ -99,6 +99,7 @@ public class RtDegradeDemo {
                     while (true) {
                         Entry entry = null;
                         try {
+                            //睡眠5毫秒
                             TimeUnit.MILLISECONDS.sleep(5);
                             entry = SphU.entry(KEY);
                             // token acquired
@@ -129,7 +130,7 @@ public class RtDegradeDemo {
         // set threshold rt, 10 ms
         rule.setCount(10);
         rule.setGrade(RuleConstant.DEGRADE_GRADE_RT);
-        rule.setTimeWindow(10);
+        rule.setTimeWindow(10);//熔断等待10ms
         rules.add(rule);
         DegradeRuleManager.loadRules(rules);
     }

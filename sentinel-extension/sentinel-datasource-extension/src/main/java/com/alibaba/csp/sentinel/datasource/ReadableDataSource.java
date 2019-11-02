@@ -32,6 +32,7 @@ public interface ReadableDataSource<S, T> {
      *
      * @return the target data.
      * @throws Exception IO or other error occurs
+     * 将原始数据转换成我们需要的格式
      */
     T loadConfig() throws Exception;
 
@@ -40,6 +41,8 @@ public interface ReadableDataSource<S, T> {
      *
      * @return the original data.
      * @throws Exception IO or other error occurs
+     *
+     * 从数据源中读取原始的数据
      */
     S readSource() throws Exception;
 
@@ -47,6 +50,7 @@ public interface ReadableDataSource<S, T> {
      * Get {@link SentinelProperty} of the data source.
      *
      * @return the property.
+     * // 获取该种数据源的SentinelProperty对象
      */
     SentinelProperty<T> getProperty();
 

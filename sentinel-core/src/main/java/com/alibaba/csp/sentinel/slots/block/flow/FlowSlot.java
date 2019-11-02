@@ -135,6 +135,7 @@ import com.alibaba.csp.sentinel.util.function.Function;
  *
  * @author jialiang.linjl
  * @author Eric Zhao
+ * 则用于根据预设的限流规则，以及前面 slot 统计的状态，来进行限流
  */
 public class FlowSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
 
@@ -149,6 +150,11 @@ public class FlowSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
      *
      * @param checker flow rule checker
      * @since 1.6.1
+     *  这个 slot 主要根据预设的资源的统计信息，按照固定的次序，依次生效。
+     *  如果一个资源对应两条或者多条流控规则，则会根据如下次序依次检验，直到全部通过或者有一个规则生效为止:
+     *       指定应用生效的规则，即针对调用方限流的；
+     *       调用方为 other 的规则；
+     *       调用方为 default 的规则。
      */
     FlowSlot(FlowRuleChecker checker) {
         AssertUtil.notNull(checker, "flow checker should not be null");

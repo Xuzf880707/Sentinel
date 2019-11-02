@@ -29,6 +29,7 @@ import com.alibaba.csp.sentinel.slotchain.ResourceWrapper;
  *
  * @author leyou
  * @author Eric Zhao
+ * 根据黑白名单，来做黑白名单控制
  */
 public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
 
@@ -45,7 +46,7 @@ public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
     }
 
     void checkBlackWhiteAuthority(ResourceWrapper resource, Context context) throws AuthorityException {
-        //获得配置的黑白名单的规则
+        //从AuthorityRuleManager中的类变量中获得配置的黑白名单的规则
         Map<String, Set<AuthorityRule>> authorityRules = AuthorityRuleManager.getAuthorityRules();
 
         if (authorityRules == null) {

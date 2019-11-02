@@ -24,6 +24,7 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 
 /**
  * <p>
+ *     这个类保存额资源的统计信息，相同的名称共享同一个ClusterNode
  * This class stores summary runtime statistics of the resource, including rt, thread count, qps
  * and so on. Same resource shares the same {@link ClusterNode} globally, no matter in which
  * {@link com.alibaba.csp.sentinel.context.Context}.
@@ -39,6 +40,7 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
  *
  * @author qinan.qn
  * @author jialiang.linjl
+ * 该节点中保存了资源的总体的运行时统计信息，包括rt，线程数，qps等等，相同的资源会全局共享同一个ClusterNode，不管他属于哪个上下文
  */
 public class ClusterNode extends StatisticNode {
 
@@ -49,6 +51,8 @@ public class ClusterNode extends StatisticNode {
      * So we didn't use concurrent map here, but a lock, as this lock only happens
      * at the very beginning while concurrent map will hold the lock all the time.
      * </p>
+     * key：调用者orign名称
+     * value：调用者orign对应的StatisticNode
      */
     private Map<String, StatisticNode> originCountMap = new HashMap<String, StatisticNode>();
 

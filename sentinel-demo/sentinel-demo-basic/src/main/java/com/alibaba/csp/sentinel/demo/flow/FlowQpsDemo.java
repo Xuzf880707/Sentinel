@@ -48,7 +48,7 @@ public class FlowQpsDemo {
 
     public static void main(String[] args) throws Exception {
         initFlowQpsRule();
-
+        //启动一个定时任务，每秒统计上一秒总的请求数，通过的请求数，阻塞的请求数
         tick();
         // first make the system run on a very low condition
         simulateTraffic();
@@ -64,6 +64,7 @@ public class FlowQpsDemo {
         rule1.setResource(KEY);
         // set limit qps to 20
         rule1.setCount(20);
+
         rule1.setGrade(RuleConstant.FLOW_GRADE_QPS);
         rule1.setLimitApp("default");
         rules.add(rule1);
@@ -71,6 +72,7 @@ public class FlowQpsDemo {
     }
 
     private static void simulateTraffic() {
+        //启动32个线程
         for (int i = 0; i < threadCount; i++) {
             Thread t = new Thread(new RunTask());
             t.setName("simulate-traffic-Task");
@@ -78,6 +80,9 @@ public class FlowQpsDemo {
         }
     }
 
+    /**
+     * 开启一个线程，用于统计信息
+     */
     private static void tick() {
         Thread timer = new Thread(new TimerTask());
         timer.setName("sentinel-timer-task");
@@ -96,19 +101,20 @@ public class FlowQpsDemo {
             long oldBlock = 0;
             while (!stop) {
                 try {
+                    //睡眠1秒钟
                     TimeUnit.SECONDS.sleep(1);
                 } catch (InterruptedException e) {
                 }
                 long globalTotal = total.get();
-                long oneSecondTotal = globalTotal - oldTotal;
+                long oneSecondTotal = globalTotal - oldTotal;//当前减去上一秒，获得该秒的总数
                 oldTotal = globalTotal;
 
                 long globalPass = pass.get();
-                long oneSecondPass = globalPass - oldPass;
+                long oneSecondPass = globalPass - oldPass;//当前减去上一秒，获得该秒通过的总数
                 oldPass = globalPass;
 
                 long globalBlock = block.get();
-                long oneSecondBlock = globalBlock - oldBlock;
+                long oneSecondBlock = globalBlock - oldBlock;//当前减去上一秒，获得该秒阻塞的总数
                 oldBlock = globalBlock;
 
                 System.out.println(seconds + " send qps is: " + oneSecondTotal);
@@ -129,6 +135,12 @@ public class FlowQpsDemo {
         }
     }
 
+    /***
+     * 当前任务去尝试获得资源 "abc"
+     * 并统计成功获得资源的任务数
+     * 被阻塞获得资源的任务数
+     * 总的资源的任务数
+     */
     static class RunTask implements Runnable {
         @Override
         public void run() {

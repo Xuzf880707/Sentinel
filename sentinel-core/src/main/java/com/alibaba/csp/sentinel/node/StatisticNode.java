@@ -26,11 +26,12 @@ import com.alibaba.csp.sentinel.slots.statistic.metric.ArrayMetric;
 import com.alibaba.csp.sentinel.slots.statistic.metric.Metric;
 
 /**
+ * 三种实时统计指标
  * <p>The statistic node keep three kinds of real-time statistics metrics:</p>
  * <ol>
- * <li>metrics in second level ({@code rollingCounterInSecond})</li>
- * <li>metrics in minute level ({@code rollingCounterInMinute})</li>
- * <li>thread count</li>
+ * <li>metrics in second level ({@code rollingCounterInSecond})</li> 秒级滑动窗口
+ * <li>metrics in minute level ({@code rollingCounterInMinute})</li> 分钟级滑动窗口
+ * <li>thread count</li> 线程数
  * </ol>
  *
  * <p>
@@ -39,6 +40,7 @@ import com.alibaba.csp.sentinel.slots.statistic.metric.Metric;
  * </p>
  *
  * <p>
+ *     当地一个请求过来的适合，Sentinel会闯建一个新的一个时间跨度内窗口用于存储运行时的统计信息，比如响应时间、QPS、阻塞请求等
  * case 1: When the first request comes in, Sentinel will create a new window bucket of
  * a specified time-span to store running statics, such as total response time(rt),
  * incoming request(QPS), block request(bq), etc. And the time-span is defined by sample count.
@@ -85,12 +87,14 @@ import com.alibaba.csp.sentinel.slots.statistic.metric.Metric;
  *
  * @author qinan.qn
  * @author jialiang.linjl
+ * 执行具体的资源统计操作
  */
 public class StatisticNode implements Node {
 
     /**
      * Holds statistics of the recent {@code INTERVAL} seconds. The {@code INTERVAL} is divided into time spans
      * by given {@code sampleCount}.
+     * 秒级
      */
     private transient volatile Metric rollingCounterInSecond = new ArrayMetric(SampleCountProperty.SAMPLE_COUNT,
         IntervalProperty.INTERVAL);
@@ -98,6 +102,7 @@ public class StatisticNode implements Node {
     /**
      * Holds statistics of the recent 60 seconds. The windowLengthInMs is deliberately set to 1000 milliseconds,
      * meaning each bucket per second, in this way we can get accurate statistics of each second.
+     * 分钟级
      */
     private transient Metric rollingCounterInMinute = new ArrayMetric(60, 60 * 1000, false);
 
@@ -244,8 +249,8 @@ public class StatisticNode implements Node {
 
     @Override
     public void addRtAndSuccess(long rt, int successCount) {
-        rollingCounterInSecond.addSuccess(successCount);
-        rollingCounterInSecond.addRT(rt);
+        rollingCounterInSecond.addSuccess(successCount);//记录秒级的执行成功exit的数量
+        rollingCounterInSecond.addRT(rt);//记录同一秒内的请求数的总的响应时间
 
         rollingCounterInMinute.addSuccess(successCount);
         rollingCounterInMinute.addRT(rt);

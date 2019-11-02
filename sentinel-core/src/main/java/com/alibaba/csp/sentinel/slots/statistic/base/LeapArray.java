@@ -39,11 +39,13 @@ import com.alibaba.csp.sentinel.util.TimeUtil;
  * @author Carpenter Lee
  */
 public abstract class LeapArray<T> {
-
+    //时间窗口的长度
     protected int windowLengthInMs;
+    //采样窗口的个数
     protected int sampleCount;
+    //以毫秒为单位的时间间隔
     protected int intervalInMs;
-
+    //采样的时间窗口数组
     protected final AtomicReferenceArray<WindowWrap<T>> array;
 
     /**
@@ -54,18 +56,19 @@ public abstract class LeapArray<T> {
     /**
      * The total bucket count is: {@code sampleCount = intervalInMs / windowLengthInMs}.
      *
-     * @param sampleCount  bucket count of the sliding window
+     * @param sampleCount  bucket count of the sliding window  采用的窗口个数
      * @param intervalInMs the total time interval of this {@link LeapArray} in milliseconds
+     *          统计的间隔，单位：毫秒
      */
     public LeapArray(int sampleCount, int intervalInMs) {
         AssertUtil.isTrue(sampleCount > 0, "bucket count is invalid: " + sampleCount);
         AssertUtil.isTrue(intervalInMs > 0, "total time interval of the sliding window should be positive");
         AssertUtil.isTrue(intervalInMs % sampleCount == 0, "time span needs to be evenly divided");
-
+        //每个时间窗口的长度
         this.windowLengthInMs = intervalInMs / sampleCount;
         this.intervalInMs = intervalInMs;
         this.sampleCount = sampleCount;
-
+        //创建了一个 AtomicReferenceArray 数组，用来对时间窗口中的统计值进行采样。
         this.array = new AtomicReferenceArray<>(sampleCount);
     }
 
@@ -96,11 +99,13 @@ public abstract class LeapArray<T> {
     protected abstract WindowWrap<T> resetWindowTo(WindowWrap<T> windowWrap, long startTime);
 
     private int calculateTimeIdx(/*@Valid*/ long timeMillis) {
+        //根据当前时间酸楚timeId
         long timeId = timeMillis / windowLengthInMs;
         // Calculate current index so we can map the timestamp to the leap array.
+        //根据timeId算出当前窗口在采样窗口数组中的索引idx
         return (int)(timeId % array.length());
     }
-
+    //根据当前时间算出当前窗口的应该对应的开始时间time，以毫秒为单位
     protected long calculateWindowStart(/*@Valid*/ long timeMillis) {
         return timeMillis - timeMillis % windowLengthInMs;
     }
@@ -110,14 +115,16 @@ public abstract class LeapArray<T> {
      *
      * @param timeMillis a valid timestamp in milliseconds
      * @return current bucket item at provided timestamp if the time is valid; null if time is invalid
+     * 获得当前时间窗口
      */
     public WindowWrap<T> currentWindow(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
-
+        //根据当前时间，算出该时间的timeId，并根据timeId算出当前窗口在采样窗口数组中的索引idx
         int idx = calculateTimeIdx(timeMillis);
         // Calculate current bucket start time.
+        // 根据当前时间算出当前窗口的应该对应的开始时间time，以毫秒为单位
         long windowStart = calculateWindowStart(timeMillis);
 
         /*
@@ -126,10 +133,13 @@ public abstract class LeapArray<T> {
          * (1) Bucket is absent, then just create a new bucket and CAS update to circular array.
          * (2) Bucket is up-to-date, then just return the bucket.
          * (3) Bucket is deprecated, then reset current bucket and clean all deprecated buckets.
+         *
          */
+        //循环判断直到获取到一个当前时间窗口
         while (true) {
+            //据索引idx，在采样窗口数组中取得一个时间窗口old
             WindowWrap<T> old = array.get(idx);
-            if (old == null) {
+            if (old == null) {//如果old为空
                 /*
                  *     B0       B1      B2    NULL      B4
                  * ||_______|_______|_______|_______|_______||___
@@ -142,6 +152,7 @@ public abstract class LeapArray<T> {
                  * then try to update circular array via a CAS operation. Only one thread can
                  * succeed to update, while other threads yield its time slice.
                  */
+                //创建一个新的时间窗口，并将它插入到窗口数组中的idx位置上
                 WindowWrap<T> window = new WindowWrap<T>(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));
                 if (array.compareAndSet(idx, null, window)) {
                     // Successfully updated, return the created bucket.
@@ -150,7 +161,7 @@ public abstract class LeapArray<T> {
                     // Contention failed, the thread will yield its time slice to wait for bucket available.
                     Thread.yield();
                 }
-            } else if (windowStart == old.windowStart()) {
+            } else if (windowStart == old.windowStart()) {//如果当前窗口的开始时间time与old的开始时间相等，那么说明old就是当前时间窗口，直接返回old
                 /*
                  *     B0       B1      B2     B3      B4
                  * ||_______|_______|_______|_______|_______||___
@@ -163,7 +174,7 @@ public abstract class LeapArray<T> {
                  * that means the time is within the bucket, so directly return the bucket.
                  */
                 return old;
-            } else if (windowStart > old.windowStart()) {
+            } else if (windowStart > old.windowStart()) {//如果当前窗口的开始时间time大于old的开始时间，则说明old窗口已经过时了，将old的开始时间更新为最新值：time
                 /*
                  *   (old)
                  *             B0       B1      B2    NULL      B4
@@ -184,6 +195,7 @@ public abstract class LeapArray<T> {
                 if (updateLock.tryLock()) {
                     try {
                         // Successfully get the update lock, now we reset the bucket.
+                        //将old的开始时间更新为最新值：time
                         return resetWindowTo(old, windowStart);
                     } finally {
                         updateLock.unlock();
@@ -192,7 +204,7 @@ public abstract class LeapArray<T> {
                     // Contention failed, the thread will yield its time slice to wait for bucket available.
                     Thread.yield();
                 }
-            } else if (windowStart < old.windowStart()) {
+            } else if (windowStart < old.windowStart()) {//如果当前窗口的开始时间time小于old的开始时间，实际上这种情况是不可能存在的，因为time是当前时间，old是过去的一个时间
                 // Should not go through here, as the provided time is already behind.
                 return new WindowWrap<T>(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));
             }

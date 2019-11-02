@@ -51,6 +51,7 @@ public class ContextUtil {
 
     /**
      * Holds all {@link EntranceNode}. Each {@link EntranceNode} is associated with a distinct context name.
+     * 全局变量，持有所有的入口，每个入口节点都绑定一个唯一的上下文名称
      */
     private static volatile Map<String, DefaultNode> contextNameNodeMap = new HashMap<>();
 
@@ -62,6 +63,9 @@ public class ContextUtil {
         initDefaultContext();
     }
 
+    /***
+     * 初始化一个默认的上下文入口节点：sentinel_default_context
+     */
     private static void initDefaultContext() {
         String defaultContextName = Constants.CONTEXT_DEFAULT_NAME;
         EntranceNode node = new EntranceNode(new StringResourceWrapper(defaultContextName, EntryType.IN), null);
@@ -136,12 +140,14 @@ public class ContextUtil {
      * @return
      */
     protected static Context trueEnter(String name, String origin) {
-        Context context = contextHolder.get();//从ThreadLocal里获取Context
+        //检查ThreadLocal里是否存在Context对象
+        Context context = contextHolder.get();
         if (context == null) {
+            //根据name从map中获取根节点，只要是相同的资源名，就能直接从map中获取到node
             //检查本地缓存，是否存在name对应的DefaultNode。。key：上下文名称，value是一个入口节点EntranceNode
             Map<String, DefaultNode> localCacheNameMap = contextNameNodeMap;
             DefaultNode node = localCacheNameMap.get(name);
-            if (node == null) {//第一次enter这个name
+            if (node == null) {//第一次创建上下文name
                 if (localCacheNameMap.size() > Constants.MAX_CONTEXT_NAME_SIZE) {
                     setNullContext();
                     return NULL_CONTEXT;
@@ -154,8 +160,8 @@ public class ContextUtil {
                                 setNullContext();
                                 return NULL_CONTEXT;
                             } else {
-                                //根据上下文名称初始化一个入口节点EntranceNode
-                                node = new EntranceNode(new StringResourceWrapper(name, EntryType.IN), null);
+                                //根据上下文名称初始化一个入口节点EntranceNode，入口节点通过名称绑定Context
+                                node = new EntranceNode(new StringResourceWrapper(name, EntryType.IN), null);//创建一个新的入口节点
                                 // Add entrance node. 把EntranceNode设置为Root节点的子节点
                                 Constants.ROOT.addChild(node);
                                 //更新本地缓存
@@ -170,7 +176,7 @@ public class ContextUtil {
                     }
                 }
             }
-            //返回当前线程的上下文，并在上下文中设置orign
+            //创建一个新的Context，并设置Context的根节点，即设置EntranceNode
             context = new Context(node, name);
             context.setOrigin(origin);
             contextHolder.set(context);

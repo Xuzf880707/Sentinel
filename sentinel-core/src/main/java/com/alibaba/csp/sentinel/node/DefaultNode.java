@@ -27,21 +27,27 @@ import com.alibaba.csp.sentinel.slots.nodeselector.NodeSelectorSlot;
 
 /**
  * <p>
+ *     用于对一个context下的一个资源进行统计，每个context中的每一个资源都会相应的维护一个DefaultNode
  * A {@link Node} used to hold statistics for specific resource name in the specific context.
  * Each distinct resource in each distinct {@link Context} will corresponding to a {@link DefaultNode}.
  * </p>
  * <p>
+ *  如果在同一个context中多次调用entry，则该节点下会有一个子节点列表
  * This class may have a list of sub {@link DefaultNode}s. Child nodes will be created when
  * calling {@link SphU}#entry() or {@link SphO}@entry() multiple times in the same {@link Context}.
  * </p>
  *
  * @author qinan.qn
  * @see NodeSelectorSlot
+ *
+ * 该节点持有指定上下文中指定资源的统计信息，当在同一个上下文中多次调用entry方法时，该节点下可能会创建有一系列的子节点。
+ * 另外每个DefaultNode中会关联一个ClusterNode
  */
 public class DefaultNode extends StatisticNode {
 
     /**
      * The resource associated with the node.
+     * 资源的id
      */
     private ResourceWrapper id;
 
@@ -52,6 +58,7 @@ public class DefaultNode extends StatisticNode {
 
     /**
      * Associated cluster node.
+     * 每个DefaultNode中会关联一个ClusterNode
      */
     private ClusterNode clusterNode;
 
@@ -136,6 +143,11 @@ public class DefaultNode extends StatisticNode {
         this.clusterNode.decreaseThreadNum();
     }
 
+    /***
+     * DefaultNode：保存着某个resource在某个context中的实时指标，每个DefaultNode都指向一个ClusterNode
+     * ClusterNode：保存着某个resource在所有的context中实时指标的总和，同样的resource会共享同一个ClusterNode，不管他在哪个context中
+     * @param count
+     */
     @Override
     public void addPassRequest(int count) {
         super.addPassRequest(count);

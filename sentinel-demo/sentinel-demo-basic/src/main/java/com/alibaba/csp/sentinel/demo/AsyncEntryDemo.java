@@ -184,6 +184,7 @@ public class AsyncEntryDemo {
         Entry entry = null;
         try {
             entry = SphU.entry("test-top");//设置资源名称，对应resourcename
+            entry = SphU.entry("test-top2");//设置资源名称，对应resourcename
             System.out.println("Do something...");
             service.doAsyncThenSync();
         } catch (BlockException ex) {

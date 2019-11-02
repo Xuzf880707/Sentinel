@@ -26,23 +26,27 @@ import com.alibaba.csp.sentinel.slots.block.RuleConstant;
  */
 public class GatewayFlowRule {
 
-    private String resource;
+    private String resource;//资源名称
+    //规则是针对 API Gateway 的 route（RESOURCE_MODE_ROUTE_ID）
+    // 还是用户在 Sentinel 中定义的 API 分组（RESOURCE_MODE_CUSTOM_API_NAME），默认是 route。
     private int resourceMode = SentinelGatewayConstants.RESOURCE_MODE_ROUTE_ID;
-
+    //限流指标维度，同限流规则的 grade 字段。
     private int grade = RuleConstant.FLOW_GRADE_QPS;
     private double count;
-    private long intervalSec = 1;
-
+    private long intervalSec = 1;//统计时间窗口，单位是秒，默认是 1 秒。
+    //流量整形的控制效果，同限流规则的 controlBehavior 字段，目前支持快速失败和匀速排队两种模式，默认是快速失败。
     private int controlBehavior = RuleConstant.CONTROL_BEHAVIOR_DEFAULT;
-    private int burst;
+    private int burst;//应对突发请求时额外允许的请求数目。
     /**
      * For throttle (rate limiting with queueing).
+     * 匀速排队模式下的最长排队时间，单位是毫秒，仅在匀速排队模式下生效。
      */
     private int maxQueueingTimeoutMs = 500;
 
     /**
      * For parameter flow control. If not set, the gateway rule will be
      * converted to normal flow rule.
+     * 参数限流配置。若不提供，则代表不针对参数进行限流，该网关规则将会被转换成普通流控规则；否则会转换成热点规则
      */
     private GatewayParamFlowItem paramItem;
 

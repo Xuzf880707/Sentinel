@@ -46,7 +46,7 @@ class CtEntry extends Entry {
         super(resourceWrapper);
         this.chain = chain;
         this.context = context;
-
+        //将当前资源对应的Entry添加到context的curEntry，并设置context的curEntry为当前资源，标示正在访问的资源
         setUpEntryFor(context);
     }
 
@@ -73,6 +73,7 @@ class CtEntry extends Entry {
             if (context instanceof NullContext) {
                 return;
             }
+            //如果不是最外层的Entry，因为本身Entry是可以嵌套的
             if (context.getCurEntry() != this) {
                 String curEntryNameInContext = context.getCurEntry() == null ? null : context.getCurEntry().getResourceWrapper().getName();
                 // Clean previous call stack.

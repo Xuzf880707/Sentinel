@@ -84,11 +84,12 @@ public class FlowRule extends AbstractRule {
      * Max queueing time in rate limiter behavior.
      */
     private int maxQueueingTimeMs = 500;
-
+    //标识是否为集群限流配置
     private boolean clusterMode;
     /**
      * Flow rule config for cluster mode.
      */
+    //集群限流相关配置项
     private ClusterFlowConfig clusterConfig;
 
     /**

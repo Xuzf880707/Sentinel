@@ -45,6 +45,12 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
  *
  * @author jialiang.linjl
  * @author Eric Zhao
+ *  则用于记录，统计不同纬度的 runtime 信息
+ * StatisticSlot 是 Sentinel 的核心功能插槽之一，用于统计实时的调用数据。
+ *      clusterNode：资源唯一标识的 ClusterNode 的 runtime 统计
+ *      origin：根据来自不同调用者的统计信息
+ *      defaultnode: 根据上下文条目名称和资源 ID 的 runtime 统计
+ * Sentinel 底层采用高性能的滑动窗口数据结构 LeapArray 来统计实时的秒级指标数据，可以很好地支撑写多于读的高并发场景。
  */
 public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
 
@@ -52,13 +58,13 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
     public void entry(Context context, ResourceWrapper resourceWrapper, DefaultNode node, int count,
                       boolean prioritized, Object... args) throws Throwable {
         try {
-            // Do some checking.则用于记录、统计不同纬度的 runtime 指标监控信息；
+            //触发下一个Slot的entry方法
             fireEntry(context, resourceWrapper, node, count, prioritized, args);
-
+            //如果能通过SlotChain中后面的Slot的entry方法，说明没有被限流或降级
             // Request passed, add thread count and pass count.
             node.increaseThreadNum();//线程数+1
             node.addPassRequest(count);//通过的请求数+1
-
+            //记录调用者的线程数和请求数
             if (context.getCurEntry().getOriginNode() != null) {
                 // Add count for origin node.
                 context.getCurEntry().getOriginNode().increaseThreadNum();//访问orgin的线程数+1
@@ -95,6 +101,7 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             context.getCurEntry().setError(e);
 
             // Add block count.
+            //更新node被阻塞的统计信息
             node.increaseBlockQps(count);
             if (context.getCurEntry().getOriginNode() != null) {
                 context.getCurEntry().getOriginNode().increaseBlockQps(count);
@@ -116,6 +123,7 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             context.getCurEntry().setError(e);
 
             // This should not happen.
+            //更新node异常的统计信息
             node.increaseExceptionQps(count);
             if (context.getCurEntry().getOriginNode() != null) {
                 context.getCurEntry().getOriginNode().increaseExceptionQps(count);
@@ -134,18 +142,18 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
 
         if (context.getCurEntry().getError() == null) {
             // Calculate response time (max RT is TIME_DROP_VALVE).
-            long rt = TimeUtil.currentTimeMillis() - context.getCurEntry().getCreateTime();
-            if (rt > Constants.TIME_DROP_VALVE) {
+            long rt = TimeUtil.currentTimeMillis() - context.getCurEntry().getCreateTime();//响应时间=exit时间-创建时间
+            if (rt > Constants.TIME_DROP_VALVE) {//最大响应时间不超过4900
                 rt = Constants.TIME_DROP_VALVE;
             }
 
             // Record response time and success count.
-            node.addRtAndSuccess(rt, count);
+            node.addRtAndSuccess(rt, count);//统计rt和 执行成功的次数（分钟级和秒级）
             if (context.getCurEntry().getOriginNode() != null) {
                 context.getCurEntry().getOriginNode().addRtAndSuccess(rt, count);
             }
 
-            node.decreaseThreadNum();
+            node.decreaseThreadNum();//持有资源的线程数-1
 
             if (context.getCurEntry().getOriginNode() != null) {
                 context.getCurEntry().getOriginNode().decreaseThreadNum();

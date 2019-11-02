@@ -47,6 +47,7 @@ public class CtSph implements Sph {
     /**
      * Same resource({@link ResourceWrapper#equals(Object)}) will share the same
      * {@link ProcessorSlotChain}, no matter in which {@link Context}.
+     * 一个资源对应个 ProcessorSlotChain，不同context的同一资源共享 ProcessorSlotChain
      */
     private static volatile Map<ResourceWrapper, ProcessorSlotChain> chainMap
         = new HashMap<ResourceWrapper, ProcessorSlotChain>();
@@ -126,24 +127,24 @@ public class CtSph implements Sph {
     private Entry entryWithPriority(ResourceWrapper resourceWrapper, int count, boolean prioritized, Object... args)
         throws BlockException {
         Context context = ContextUtil.getContext();//从线程中获得上下文
-        if (context instanceof NullContext) {
+        if (context instanceof NullContext) {//表明context要获得资源数量超过限制了
             // The {@link NullContext} indicates that the amount of context has exceeded the threshold,
             // so here init the entry only. No rule checking will be done.
             return new CtEntry(resourceWrapper, null, context);
         }
-
+        //获得默认的资源数
         if (context == null) {
             // Using default context.
             context = MyContextUtil.myEnter(Constants.CONTEXT_DEFAULT_NAME, "", resourceWrapper.getType());
         }
 
         // Global switch is close, no rule checking will do.
+        //如果 全局开关关闭，则无需用rule进行检查
         if (!Constants.ON) {
             return new CtEntry(resourceWrapper, null, context);
         }
         //将该资源绑定ProcessorSlotChain链，后续在获得一个资源的时候，需要沿着链路做验证
         ProcessorSlot<Object> chain = lookProcessChain(resourceWrapper);
-
         /*
          * Means amount of resources (slot chain) exceeds {@link Constants.MAX_SLOT_CHAIN_SIZE},
          * so no rule checking will be done.
@@ -151,9 +152,11 @@ public class CtSph implements Sph {
         if (chain == null) {
             return new CtEntry(resourceWrapper, null, context);
         }
-
+        //检查是否分配资源 将entry绑定到Context上
         Entry e = new CtEntry(resourceWrapper, chain, context);
         try {//开始遍历责任chain链，检查entry是否满足所有配置的规则
+            //如果SlotChain的entry方法抛出了BlockException，则将该异常继续向上抛出
+            //.如果SlotChain的entry方法正常执行了，则最后会将该entry对象返回
             chain.entry(context, resourceWrapper, null, count, prioritized, args);
         } catch (BlockException e1) {
             e.exit(count, args);
@@ -186,13 +189,15 @@ public class CtSph implements Sph {
     }
 
     /**
+     * 根据资源获得规则处理链，如果当前资源未绑定一个处理链的话，则新建一个
      * Get {@link ProcessorSlotChain} of the resource. new {@link ProcessorSlotChain} will
      * be created if the resource doesn't relate one.
-     *
+     *相同的资源会共享全部的规则链，无论是在哪一个context里
      * <p>Same resource({@link ResourceWrapper#equals(Object)}) will share the same
      * {@link ProcessorSlotChain} globally, no matter in witch {@link Context}.<p/>
      *
      * <p>
+     *     注意，全部资源数量不能超过限制
      * Note that total {@link ProcessorSlot} count must not exceed {@link Constants#MAX_SLOT_CHAIN_SIZE},
      * otherwise null will return.
      * </p>
@@ -204,6 +209,7 @@ public class CtSph implements Sph {
      *
      * @param resourceWrapper
      * @return
+     * 该方法使用了一个HashMap做了缓存，key是资源对象
      */
     ProcessorSlot<Object> lookProcessChain(ResourceWrapper resourceWrapper) {
         ProcessorSlotChain chain = chainMap.get(resourceWrapper);
@@ -215,7 +221,7 @@ public class CtSph implements Sph {
                     if (chainMap.size() >= Constants.MAX_SLOT_CHAIN_SIZE) {
                         return null;
                     }
-
+                    //通过spi加载一个规则处理链
                     chain = SlotChainProvider.newSlotChain();
                     Map<ResourceWrapper, ProcessorSlotChain> newMap = new HashMap<ResourceWrapper, ProcessorSlotChain>(
                         chainMap.size() + 1);
@@ -324,6 +330,7 @@ public class CtSph implements Sph {
      * @param name  the unique name for the protected resource 受保护的资源名称
      * @param type  the resource is an inbound or an outbound method. This is used
      *              to mark whether it can be blocked when the system is unstable
+     *              用来区分是流入还是流出的
      * @param count the count that the resource requires 需要获得资源个数
      * @param args  the parameters of the method. It can also be counted by setting hot parameter rule
      * @return

@@ -217,8 +217,9 @@ public class ArrayMetric implements Metric {
 
     @Override
     public void addPass(int count) {
+        //将LeapArray的当前滑动窗口包装成一个WindowWrap
         WindowWrap<MetricBucket> wrap = data.currentWindow();
-        wrap.value().addPass(count);
+        wrap.value().addPass(count);//执行包装的滑动窗口WindowWrap的addPass方法
     }
 
     @Override

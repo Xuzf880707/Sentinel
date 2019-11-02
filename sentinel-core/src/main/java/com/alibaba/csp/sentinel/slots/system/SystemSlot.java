@@ -23,9 +23,15 @@ import com.alibaba.csp.sentinel.slotchain.ResourceWrapper;
 
 /**
  * A {@link ProcessorSlot} that dedicates to {@link SystemRule} checking.
- *
+ *  系统保护
  * @author jialiang.linjl
  * @author leyou
+ * 这个 slot 会根据对于当前系统的整体情况，对入口的资源进行调配。其原理是让入口的流量和当前系统的 load 达到一个动态平衡
+ *
+ *  注意这个功能的两个限制:
+ *      只对入口流量起作用（调用类型为EntryType.IN），对出口流量无效。可通过 SphU.entry() 指定调用类型，如果不指定，默认是EntryType.OUT。
+ *          Entry entry = SphU.entry("resourceName"，EntryType.IN);
+ *      只在 Unix-like 的操作系统上生效
  */
 public class SystemSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
 

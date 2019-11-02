@@ -22,9 +22,12 @@ import com.alibaba.csp.sentinel.slots.nodeselector.NodeSelectorSlot;
 
 /**
  * <p>
+ *     一个代表调用树的入口的节点
  * A {@link Node} represents the entrance of the invocation tree.
  * </p>
  * <p>
+ *    一个context会关联一个 EntranceNode，它代表每个调用树的入口。如果当前context不存在一个EntranceNode
+ *    来代表该context的入口的话，则会创建一个新的。相同名字的context会共享一个EntranceNode
  * One {@link Context} will related to a {@link EntranceNode},
  * which represents the entrance of the invocation tree. New {@link EntranceNode} will be created if
  * current context does't have one. Note that same context name will share same {@link EntranceNode}
@@ -35,6 +38,8 @@ import com.alibaba.csp.sentinel.slots.nodeselector.NodeSelectorSlot;
  * @see ContextUtil
  * @see ContextUtil#enter(String, String)
  * @see NodeSelectorSlot
+ *
+ * 该节点表示一棵调用链树的入口节点，通过他可以获取调用链树中所有的子节点
  */
 public class EntranceNode extends DefaultNode {
 
