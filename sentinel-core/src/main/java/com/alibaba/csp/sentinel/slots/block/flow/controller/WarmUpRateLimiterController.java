@@ -41,6 +41,7 @@ public class WarmUpRateLimiterController extends WarmUpController {
 
     @Override
     public boolean canPass(Node node, int acquireCount, boolean prioritized) {
+        //获得前一秒的QPS
         long previousQps = (long) node.previousPassQps();
         syncToken(previousQps);
 

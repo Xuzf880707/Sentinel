@@ -113,12 +113,28 @@ public class WarmUpController implements TrafficShapingController {
         return canPass(node, acquireCount, false);
     }
 
+    /***
+     * 1、获得当前通过的QPS
+     * 2、获得前一个窗口的QPS
+     * 3、重新计算新的冷却令牌，并同步更新storedTokens（桶里剩余的令牌）
+     * 4、如果storedTokens超过警戒线，也就是利用率很低。说明令牌桶饱和了，我们要冷却
+     *      则根据斜率重新计算新的警戒线
+     *    如果当前storedTokens小于警戒令牌，则直接判断QPS是否
+     * @param node resource node
+     * @param acquireCount count to acquire
+     * @param prioritized whether the request is prioritized
+     * @return
+     *
+     * 主要是可能由于令牌桶每秒生成的令牌数超过令牌的消耗速度，所以会导致桶中的累积的越来越多。
+     * 这里会前一秒的QPS和当前累积的令牌桶，重新计算斜率，也就是生产令牌的速度
+     */
     @Override
     public boolean canPass(Node node, int acquireCount, boolean prioritized) {
         //获得通过资源的当前时间的qps
         long passQps = (long) node.passQps();
         //获得当前时间前滑动窗口的的qps
         long previousQps = (long) node.previousPassQps();
+        //重新计算新的冷却令牌，并同步更新storedTokens
         syncToken(previousQps);
 
         // 开始计算它的斜率
@@ -141,6 +157,15 @@ public class WarmUpController implements TrafficShapingController {
         return false;
     }
 
+    /***
+     * 获得桶里剩余的
+     * 1、获得当前时间(毫秒转成秒)
+     * 2、获得上一次填充的时间，默认是0
+     * 3、如果当前时间<=上次填充令牌桶的时间，则直接返回
+     * 4、获得storedTokens的值
+     * 5、获得新的冷却令牌，并同步更新storedTokens
+     * @param passQps
+     */
     protected void syncToken(long passQps) {
         //当前时间
         long currentTime = TimeUtil.currentTimeMillis();
@@ -153,9 +178,11 @@ public class WarmUpController implements TrafficShapingController {
         }
         //获取上次填充值storedTokens.get()
         long oldValue = storedTokens.get();
+        //计算当前令牌桶中冷却的令牌数量
         long newValue = coolDownTokens(currentTime, passQps);//冷却令牌
         //设置新令牌如果成功则将上个时间窗通过的qps减去，如果减去之后小于0则设置为0
         if (storedTokens.compareAndSet(oldValue, newValue)) {
+            //减去上一个的QPS=令牌桶剩余的令牌数(表示生产令牌过快，因此会作为是否需要冷却的依据)
             long currentValue = storedTokens.addAndGet(0 - passQps);
             if (currentValue < 0) {
                 storedTokens.set(0L);
@@ -165,6 +192,18 @@ public class WarmUpController implements TrafficShapingController {
 
     }
 
+    /***
+     * 根据前一秒的QPS，来计算当前桶中剩余的令牌数，最多不能超过最大的剩余数maxToken
+     * 1、获得storedTokens的值
+     * 2、如果storedTokens<警戒值
+     *      新令牌=((当前时间-上次填充时间)/1000(即转为秒))*count（阈值count）+老令牌
+     *    如果storedTokens>警戒值
+     *        a、上个时间窗的qps小于(count/冷却因子) ，新令牌=同样按照小于警戒令牌的算法计算。
+     *        b、如果大于等于则不再增加新令牌
+     * @param currentTime 当前时间
+     * @param passQps 前一个窗口的QPS
+     * @return
+     */
     private long coolDownTokens(long currentTime, long passQps) {
         long oldValue = storedTokens.get();
         long newValue = oldValue;

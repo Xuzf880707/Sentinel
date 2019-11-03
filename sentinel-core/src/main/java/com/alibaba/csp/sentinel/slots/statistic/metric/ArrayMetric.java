@@ -103,8 +103,15 @@ public class ArrayMetric implements Metric {
         return block;
     }
 
+    /***
+     * 1、获得当前时间
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long pass() {
+        //TODO ?这一步只是为了重置更新当前时间对应的窗口，然后避免拿到旧的值吗？但是data.values()已经做了同样的功能了啊？
         data.currentWindow();
         long pass = 0;
         List<MetricBucket> list = data.values();

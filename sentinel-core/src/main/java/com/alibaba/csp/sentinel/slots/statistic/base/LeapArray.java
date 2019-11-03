@@ -359,6 +359,14 @@ public abstract class LeapArray<T> {
         return values(TimeUtil.currentTimeMillis());
     }
 
+    /***
+     * 根据提供的时间，获得整个滑动窗口数组中所有窗口的值的总和
+     *      1、遍历时间窗口数组
+     *      2、如果当前窗口为空，或者当前窗口的开始时间和提供的时间差距超过一个采样窗口数组的时间跨度，则表示太老了，废弃掉
+     * 所以这里在统计的时候，会丢弃掉开始时间跟当前时间跨度超过1整个数组窗口的时间跨度的窗口
+     * @param timeMillis
+     * @return
+     */
     public List<T> values(long timeMillis) {
         if (timeMillis < 0) {
             return new ArrayList<T>();

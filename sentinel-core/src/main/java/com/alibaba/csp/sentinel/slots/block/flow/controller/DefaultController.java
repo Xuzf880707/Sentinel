@@ -62,13 +62,16 @@ public class DefaultController implements TrafficShapingController {
                 long waitInMs;
                 //获得当前时间
                 currentTime = TimeUtil.currentTimeMillis();
+                //可以先预支后面的令牌，并返回预支后需要等待的时间
                 waitInMs = node.tryOccupyNext(currentTime, acquireCount, count);
+                //如果因为预支而等待的时间小于
                 if (waitInMs < OccupyTimeoutProperty.getOccupyTimeout()) {
                     node.addWaitingRequest(currentTime + waitInMs, acquireCount);
                     node.addOccupiedPass(acquireCount);
                     sleep(waitInMs);
 
                     // PriorityWaitException indicates that the request will pass after waiting for {@link @waitInMs}.
+                    //表示请求将被等待
                     throw new PriorityWaitException(waitInMs);
                 }
             }
@@ -76,7 +79,14 @@ public class DefaultController implements TrafficShapingController {
         }
         return true;
     }
-    //返回当前滑动窗口的qps或者并发线程数
+
+    /**
+     * 获得已被获取的token数
+     *      1、如果限流方式是Thread线程类型的，则直接获得当前线程数
+     *      2、如果如果限流方式是QPS类型的，则获得当前滑动窗口中的QPS
+     * @param node
+     * @return
+     */
     private int avgUsedTokens(Node node) {
         if (node == null) {
             return DEFAULT_AVG_USED_TOKENS;

@@ -195,10 +195,10 @@ public class StatisticNode implements Node {
     public long totalException() {
         return rollingCounterInMinute.exception();
     }
-
     @Override
-    public double passQps() {//从滑动窗口中获得成功获得资源的请求数/除以窗口大小=每秒的请求数
-        //默认rollingCounterInSecond.getWindowIntervalInSec()=0.5s
+    public double passQps() {
+        //rollingCounterInSecond.pass()：当前整个滑动时间窗口数组中总的统计值
+        //rollingCounterInSecond.getWindowIntervalInSec():整个滑动时间窗口数组的时间跨度
         return rollingCounterInSecond.pass() / rollingCounterInSecond.getWindowIntervalInSec();
     }
 
@@ -285,7 +285,9 @@ public class StatisticNode implements Node {
     }
 
     /***
-     *
+     *  1、获得整个滑动窗口数组中可以容纳的最大的查询数Q
+     *  2、计算每个滑动子窗口的时间跨度
+     *  3、
      * @param currentTime  current time millis. 当前时间
      * @param acquireCount tokens count to acquire. 需要获取的token数
      * @param threshold    qps threshold. 当前滑动窗口的qps
