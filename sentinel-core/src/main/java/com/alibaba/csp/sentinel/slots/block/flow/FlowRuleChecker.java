@@ -77,11 +77,11 @@ public class FlowRuleChecker {
 
     private static boolean passLocalCheck(FlowRule rule, Context context, DefaultNode node, int acquireCount,
                                           boolean prioritized) {
-        Node selectedNode = selectNodeByRequesterAndStrategy(rule, context, node);
+        Node selectedNode = selectNodeByRequesterAndStrategy(rule, context, node);//获得clusterNode
         if (selectedNode == null) {
             return true;
         }
-
+        //交给behaviorController来判断是否放行
         return rule.getRater().canPass(selectedNode, acquireCount, prioritized);
     }
 
@@ -114,9 +114,9 @@ public class FlowRuleChecker {
 
     static Node selectNodeByRequesterAndStrategy(/*@NonNull*/ FlowRule rule, Context context, DefaultNode node) {
         // The limit app should not be empty.
-        String limitApp = rule.getLimitApp();
-        int strategy = rule.getStrategy();
-        String origin = context.getOrigin();
+        String limitApp = rule.getLimitApp();//
+        int strategy = rule.getStrategy();//获得限流策略：0-QPS或1-线程
+        String origin = context.getOrigin();//获得调用者名称
 
         if (limitApp.equals(origin) && filterOrigin(origin)) {
             if (strategy == RuleConstant.STRATEGY_DIRECT) {

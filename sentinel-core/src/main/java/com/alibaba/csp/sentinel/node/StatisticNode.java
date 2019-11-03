@@ -197,7 +197,8 @@ public class StatisticNode implements Node {
     }
 
     @Override
-    public double passQps() {
+    public double passQps() {//从滑动窗口中获得成功获得资源的请求数/除以窗口大小=每秒的请求数
+        //默认rollingCounterInSecond.getWindowIntervalInSec()=0.5s
         return rollingCounterInSecond.pass() / rollingCounterInSecond.getWindowIntervalInSec();
     }
 
@@ -283,8 +284,16 @@ public class StatisticNode implements Node {
         rollingCounterInSecond.debug();
     }
 
+    /***
+     *
+     * @param currentTime  current time millis. 当前时间
+     * @param acquireCount tokens count to acquire. 需要获取的token数
+     * @param threshold    qps threshold. 当前滑动窗口的qps
+     * @return
+     */
     @Override
     public long tryOccupyNext(long currentTime, int acquireCount, double threshold) {
+        //maxCount = 当前的qps*窗口的大小/1s (也就是一个滑动窗口里的最大数量)
         double maxCount = threshold * IntervalProperty.INTERVAL / 1000;
         long currentBorrow = rollingCounterInSecond.waiting();
         if (currentBorrow >= maxCount) {

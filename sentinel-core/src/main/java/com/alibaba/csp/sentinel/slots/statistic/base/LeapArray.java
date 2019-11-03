@@ -39,11 +39,11 @@ import com.alibaba.csp.sentinel.util.TimeUtil;
  * @author Carpenter Lee
  */
 public abstract class LeapArray<T> {
-    //时间窗口的长度
+    //采样窗口数组中每个时间窗口的长度
     protected int windowLengthInMs;
     //采样窗口的个数
     protected int sampleCount;
-    //以毫秒为单位的时间间隔
+    //以毫秒为单位的时间间隔(整个采样窗口的时间长度)
     protected int intervalInMs;
     //采样的时间窗口数组
     protected final AtomicReferenceArray<WindowWrap<T>> array;
@@ -64,10 +64,10 @@ public abstract class LeapArray<T> {
         AssertUtil.isTrue(sampleCount > 0, "bucket count is invalid: " + sampleCount);
         AssertUtil.isTrue(intervalInMs > 0, "total time interval of the sliding window should be positive");
         AssertUtil.isTrue(intervalInMs % sampleCount == 0, "time span needs to be evenly divided");
-        //每个时间窗口的长度
+        //每个采样时间窗口的长度=整个采样窗口数组的时间跨度/采样窗口数
         this.windowLengthInMs = intervalInMs / sampleCount;
-        this.intervalInMs = intervalInMs;
-        this.sampleCount = sampleCount;
+        this.intervalInMs = intervalInMs;//整个采样窗口数组的时间跨度
+        this.sampleCount = sampleCount;//采样窗口数
         //创建了一个 AtomicReferenceArray 数组，用来对时间窗口中的统计值进行采样。
         this.array = new AtomicReferenceArray<>(sampleCount);
     }
@@ -99,13 +99,13 @@ public abstract class LeapArray<T> {
     protected abstract WindowWrap<T> resetWindowTo(WindowWrap<T> windowWrap, long startTime);
 
     private int calculateTimeIdx(/*@Valid*/ long timeMillis) {
-        //根据当前时间酸楚timeId
+        //根据当前时间计算timeId，
         long timeId = timeMillis / windowLengthInMs;
         // Calculate current index so we can map the timestamp to the leap array.
         //根据timeId算出当前窗口在采样窗口数组中的索引idx
         return (int)(timeId % array.length());
     }
-    //根据当前时间算出当前窗口的应该对应的开始时间time，以毫秒为单位
+    //根据时间，计算出它所在窗口的开始时间节点
     protected long calculateWindowStart(/*@Valid*/ long timeMillis) {
         return timeMillis - timeMillis % windowLengthInMs;
     }
@@ -115,16 +115,22 @@ public abstract class LeapArray<T> {
      *
      * @param timeMillis a valid timestamp in milliseconds
      * @return current bucket item at provided timestamp if the time is valid; null if time is invalid
-     * 获得当前时间窗口
+     * 1、根据提供的时间计算出映射的采样窗口数组的索引index(注意，这个窗口并不一定就是提供时间所属的窗口，因为有可能它是旧的那个窗口)
+     * 2、根据index从采样窗口数组中获得对应的采样窗口
+     * 3、获得目标窗口的开始时间
+     *      a、目标索引压根就没有采样窗口(第一次时候)，则新建一个采样窗口，并放到目标索引上
+     *      b、目标索引上的窗口的开始时间和提供的时间所属的窗口的开始时间一致，则返回目标窗口
+     *      c、目标索引上的窗口的开始时间比提供的时间所属的窗口的开始时间小，则表示那是一个旧的窗口，则会重置窗口的开始时间，这样这个窗口就是新的一个窗口了
+     *
      */
     public WindowWrap<T> currentWindow(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
-        //根据当前时间，算出该时间的timeId，并根据timeId算出当前窗口在采样窗口数组中的索引idx
+        //根据当前时间，计算出该时间的timeId，并根据timeId算出对应采样窗口数组中对应的采样窗口索引idx
         int idx = calculateTimeIdx(timeMillis);
         // Calculate current bucket start time.
-        // 根据当前时间算出当前窗口的应该对应的开始时间time，以毫秒为单位
+        //根据当前时间，计算出它所在窗口的开始时间节点
         long windowStart = calculateWindowStart(timeMillis);
 
         /*
@@ -137,9 +143,9 @@ public abstract class LeapArray<T> {
          */
         //循环判断直到获取到一个当前时间窗口
         while (true) {
-            //据索引idx，在采样窗口数组中取得一个时间窗口old
+            //根据当前时间映射的采样时间窗口的索引idx，找出当前时间对应采样窗口数组中对应的采样窗口
             WindowWrap<T> old = array.get(idx);
-            if (old == null) {//如果old为空
+            if (old == null) {//如果当前索引为空
                 /*
                  *     B0       B1      B2    NULL      B4
                  * ||_______|_______|_______|_______|_______||___
@@ -192,10 +198,10 @@ public abstract class LeapArray<T> {
                  * The update lock is conditional (tiny scope) and will take effect only when
                  * bucket is deprecated, so in most cases it won't lead to performance loss.
                  */
-                if (updateLock.tryLock()) {
+                if (updateLock.tryLock()) {//这里使用lock锁，可以保证重置和清理工作并发问题，保证正确更新bucket
                     try {
                         // Successfully get the update lock, now we reset the bucket.
-                        //将old的开始时间更新为最新值：time
+                        //将old的开始时间更新为最新值：time 。会丢弃当前窗口之前统计的所有信息，不过这里只统计开始时间
                         return resetWindowTo(old, windowStart);
                     } finally {
                         updateLock.unlock();
@@ -204,8 +210,9 @@ public abstract class LeapArray<T> {
                     // Contention failed, the thread will yield its time slice to wait for bucket available.
                     Thread.yield();
                 }
-            } else if (windowStart < old.windowStart()) {//如果当前窗口的开始时间time小于old的开始时间，实际上这种情况是不可能存在的，因为time是当前时间，old是过去的一个时间
+            } else if (windowStart < old.windowStart()) {//如果当前窗口的开始时间time小于old的开始时间
                 // Should not go through here, as the provided time is already behind.
+
                 return new WindowWrap<T>(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));
             }
         }
@@ -217,6 +224,14 @@ public abstract class LeapArray<T> {
      * @param timeMillis a valid timestamp in milliseconds
      * @return the previous bucket item before provided timestamp
      */
+    /***
+     * 获得某一个时间点的前一个窗口
+     * 1、判断时间参数的合法性
+     * 2、根据提供的时间参数向前推一个时间窗口，并计算窗口对应的idx
+     * 3、判断索引对应采样窗口是否就是目标窗口，因为有可能旧的窗口早就被替代调了
+     * @param timeMillis
+     * @return
+     */
     public WindowWrap<T> getPreviousWindow(long timeMillis) {
         if (timeMillis < 0) {
             return null;
@@ -225,11 +240,12 @@ public abstract class LeapArray<T> {
         int idx = (int)(timeId % array.length());
         timeMillis = timeMillis - windowLengthInMs;
         WindowWrap<T> wrap = array.get(idx);
-
+        //如果某个窗口的开始时间+intervalInMs（整个窗口数组的时间跨度）<当前时间，那么这个目标窗口肯定是已经被丢弃了
+        //判断窗口是否已经被丢弃了
         if (wrap == null || isWindowDeprecated(wrap)) {
             return null;
         }
-
+        //如果目标索引的窗口距离提供的时间超过一个窗口大小，则索引目标索引的窗口已经经历过多次更新迭代了
         if (wrap.windowStart() + windowLengthInMs < (timeMillis)) {
             return null;
         }
@@ -256,10 +272,11 @@ public abstract class LeapArray<T> {
         if (timeMillis < 0) {
             return null;
         }
+        //计算时间对应的滑动窗口数组的索引
         int idx = calculateTimeIdx(timeMillis);
-
+        //获得指定索引的窗口
         WindowWrap<T> bucket = array.get(idx);
-
+        //判断这个时间是否在目标窗口之间，如果不是则返回空
         if (bucket == null || !bucket.isTimeInWindow(timeMillis)) {
             return null;
         }
@@ -273,6 +290,11 @@ public abstract class LeapArray<T> {
      *
      * @param windowWrap a non-null bucket
      * @return true if the bucket is deprecated; otherwise false
+     */
+    /***
+     * 如果某个窗口的开始时间+intervalInMs（整个窗口数组的时间跨度）<当前时间，那么这个目标窗口肯定是已经被丢弃了
+     * @param windowWrap
+     * @return
      */
     public boolean isWindowDeprecated(/*@NonNull*/ WindowWrap<T> windowWrap) {
         return isWindowDeprecated(TimeUtil.currentTimeMillis(), windowWrap);

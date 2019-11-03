@@ -62,11 +62,13 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             fireEntry(context, resourceWrapper, node, count, prioritized, args);
             //如果能通过SlotChain中后面的Slot的entry方法，说明没有被限流或降级
             // Request passed, add thread count and pass count.
+            //增加访问资源的并发线程数
             node.increaseThreadNum();//线程数+1
+            // 再增加当前秒钟pass的请求数
             node.addPassRequest(count);//通过的请求数+1
-            //记录调用者的线程数和请求数
+            // 如果在调用entry之前指定了调用的origin，即调用方
             if (context.getCurEntry().getOriginNode() != null) {
-                // Add count for origin node.
+                // 则会有一个originNode，我们也需要做上面两个增加操作
                 context.getCurEntry().getOriginNode().increaseThreadNum();//访问orgin的线程数+1
                 context.getCurEntry().getOriginNode().addPassRequest(count);//访问orgin的通过的请求数+1
             }
@@ -100,9 +102,10 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             // Blocked, set block exception to current entry.
             context.getCurEntry().setError(e);
 
-            // Add block count.
-            //更新node被阻塞的统计信息
+            // 如果触发了BlockException，则说明获取token失败，被限流
+            // 因此增加当前秒Block的请求数
             node.increaseBlockQps(count);
+            //这里是针对调用方origin的统计
             if (context.getCurEntry().getOriginNode() != null) {
                 context.getCurEntry().getOriginNode().increaseBlockQps(count);
             }
@@ -139,9 +142,10 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
     @Override
     public void exit(Context context, ResourceWrapper resourceWrapper, int count, Object... args) {
         DefaultNode node = (DefaultNode)context.getCurNode();
-
+        //如果是正常退出该entry,表示本次请求成功
         if (context.getCurEntry().getError() == null) {
             // Calculate response time (max RT is TIME_DROP_VALVE).
+            //获得响应时间：entry.enter-entry.exit
             long rt = TimeUtil.currentTimeMillis() - context.getCurEntry().getCreateTime();//响应时间=exit时间-创建时间
             if (rt > Constants.TIME_DROP_VALVE) {//最大响应时间不超过4900
                 rt = Constants.TIME_DROP_VALVE;
