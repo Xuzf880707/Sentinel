@@ -160,9 +160,32 @@ public class DegradeRule extends AbstractRule {
         return result;
     }
 
+    /***
+     *
+     * @param context current {@link Context}
+     * @param node    current {@link com.alibaba.csp.sentinel.node.Node}
+     * @param acquireCount
+     * @param args    arguments of the original invocation.
+     * @return
+     * 1、判断熔断开关是否打开：如果打开，则直接拒绝放行
+     * 2、获得资源对应的ClusterNode
+     * 3、检查熔断规则
+     *      a、DEGRADE_GRADE_RT：根据响应时间熔断：
+     *          根据滑动窗口，计算当前滑动窗口的平均rt=滑动窗口的所有成功请求总的响应时间/滑动窗口的所有成功的请求数。
+     *          如果平均响应时间小于阀值，则放行。
+     *          如果平均响应时间大于阀值，则如果判断已放行的超过阀值的请求数是否小于5，如果是的话，则继续放行，否则打开开关熔断
+     *      b、DEGRADE_GRADE_EXCEPTION_RATIO：根据异常比熔断：注意，这里的异常是业务异常
+     *          根据滑动窗口，获得当前的异常数和成功请求数。注意，这里成功的请求数里包括抛出业务异常的请求。
+     *          计算 exception/success，如果小于阀值，则放行。
+     *          如果比例大于阀值，则打开开关熔断
+     *
+     *      c、DEGRADE_GRADE_EXCEPTION_COUNT：直接根据异常数熔断，直接判断异常数是否超过阀值，如果是，则打开熔断开关
+     *
+     *
+     */
     @Override
     public boolean passCheck(Context context, DefaultNode node, int acquireCount, Object... args) {
-        if (cut.get()) {
+        if (cut.get()) {//如果熔断开关打开的话，则直接不放行
             return false;
         }
 
@@ -170,42 +193,42 @@ public class DegradeRule extends AbstractRule {
         if (clusterNode == null) {
             return true;
         }
-
+        //如果是根据RT
         if (grade == RuleConstant.DEGRADE_GRADE_RT) {
-            double rt = clusterNode.avgRt();
-            if (rt < this.count) {
+            double rt = clusterNode.avgRt();//获得平均一个请求的响应时间
+            if (rt < this.count) {//如果平均响应时间<阀值，则成功放行
                 passCount.set(0);
                 return true;
             }
-
+            //走到这边说明平均的响应时间超过阀值了，则通过的请求数是否达到统计的数量
             // Sentinel will degrade the service only if count exceeds.
             if (passCount.incrementAndGet() < RT_MAX_EXCEED_N) {
                 return true;
             }
-        } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO) {
-            double exception = clusterNode.exceptionQps();
-            double success = clusterNode.successQps();
-            double total = clusterNode.totalQps();
+        } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO) {//如果根据错误比
+            double exception = clusterNode.exceptionQps();//前一秒的每秒异常数(业务异常)
+            double success = clusterNode.successQps();//前一秒的每秒成功数（包括拿到token但是抛出业务异常的请求）
+            double total = clusterNode.totalQps();//前一秒总的请求数
             // if total qps less than RT_MAX_EXCEED_N, pass.
-            if (total < RT_MAX_EXCEED_N) {
+            if (total < RT_MAX_EXCEED_N) {//如果总的查询嗨未超过默认的阀值，则直接反省
                 return true;
             }
-
+            //计算真正的成功请求数，也就是
             double realSuccess = success - exception;
             if (realSuccess <= 0 && exception < RT_MAX_EXCEED_N) {
                 return true;
             }
-
+            //如果失败数/成功数<count，也就是小于阀值，则放行，不然打开熔断开关
             if (exception / success < count) {
                 return true;
             }
-        } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_COUNT) {
-            double exception = clusterNode.totalException();
+        } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_COUNT) {//如果根据异常数
+            double exception = clusterNode.totalException();//直接判断异常数是否超过阀值
             if (exception < count) {
                 return true;
             }
         }
-
+        //如果原来cut是false，就是未打开熔断开关，则开启熔断开关
         if (cut.compareAndSet(false, true)) {
             ResetTask resetTask = new ResetTask(this);
             pool.schedule(resetTask, timeWindow, TimeUnit.SECONDS);

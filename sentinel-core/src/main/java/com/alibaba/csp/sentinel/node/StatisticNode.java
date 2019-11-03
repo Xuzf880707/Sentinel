@@ -222,6 +222,10 @@ public class StatisticNode implements Node {
         return rollingCounterInSecond.occupiedPass() / rollingCounterInSecond.getWindowIntervalInSec();
     }
 
+    /****
+     * 获得平均响应时间=整个滑动窗口数组中所有元素的的rt总和/成功数总和
+     * @return
+     */
     @Override
     public double avgRt() {
         long successCount = rollingCounterInSecond.success();

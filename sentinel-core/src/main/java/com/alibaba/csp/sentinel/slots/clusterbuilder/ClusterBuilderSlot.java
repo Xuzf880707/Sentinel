@@ -145,7 +145,7 @@ public class ClusterBuilderSlot extends AbstractLinkedProcessorSlot<DefaultNode>
         }
         ClusterNode clusterNode = null;
 
-        for (EntryType nodeType : EntryType.values()) {
+        for (EntryType nodeType : EntryType.values()) {//从全局变量clusterNodeMap根据资源名称获取
             clusterNode = clusterNodeMap.get(new StringResourceWrapper(id, nodeType));
             if (clusterNode != null) {
                 break;
