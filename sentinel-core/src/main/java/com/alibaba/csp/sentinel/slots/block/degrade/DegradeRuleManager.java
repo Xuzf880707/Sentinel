@@ -71,12 +71,12 @@ public final class DegradeRuleManager {
     //熔断降级检查
     public static void checkDegrade(ResourceWrapper resource, Context context, DefaultNode node, int count)
         throws BlockException {
-
+        //根据资源名称获得配置的熔断规则
         Set<DegradeRule> rules = degradeRules.get(resource.getName());
         if (rules == null) {
             return;
         }
-
+        //循环熔断规则，只要有一个无法通过，则就熔断
         for (DegradeRule rule : rules) {
             if (!rule.passCheck(context, node, count)) {
                 throw new DegradeException(rule.getLimitApp(), rule);
@@ -152,6 +152,9 @@ public final class DegradeRuleManager {
         }
     }
 
+    /****
+     * 主要是用于监听熔断规则的变化
+     */
     private static class RulePropertyListener implements PropertyListener<List<DegradeRule>> {
 
         @Override
@@ -174,6 +177,11 @@ public final class DegradeRuleManager {
             RecordLog.info("[DegradeRuleManager] Degrade rules loaded: " + degradeRules);
         }
 
+        /***
+         * 更新熔断规则
+         * @param list
+         * @return
+         */
         private Map<String, Set<DegradeRule>> loadDegradeConf(List<DegradeRule> list) {
             Map<String, Set<DegradeRule>> newRuleMap = new ConcurrentHashMap<>();
 
@@ -205,20 +213,29 @@ public final class DegradeRuleManager {
         }
     }
 
+    /***
+     * 判断规则是否有效
+     * @param rule
+     * @return
+     */
     public static boolean isValidRule(DegradeRule rule) {
+        //如果资源名称为空，或者熔断的窗口时间验证不通过，则忽略此规则
         boolean baseValid = rule != null && !StringUtil.isBlank(rule.getResource())
             && rule.getCount() >= 0 && rule.getTimeWindow() > 0;
         if (!baseValid) {
             return false;
         }
         // Warn for RT mode that exceeds the {@code TIME_DROP_VALVE}.
+        //获得配置属性：csp.sentinel.statistic.max.rt
         int maxAllowedRt = Constants.TIME_DROP_VALVE;
+        //如果是按照响应时间熔断，且配置的阀值时间超过csp.sentinel.statistic.max.rt，则打印日志
         if (rule.getGrade() == RuleConstant.DEGRADE_GRADE_RT && rule.getCount() > maxAllowedRt) {
             RecordLog.warn(String.format("[DegradeRuleManager] WARN: setting large RT threshold (%.1f ms) in RT mode"
                     + " will not take effect since it exceeds the max allowed value (%d ms)", rule.getCount(),
                 maxAllowedRt));
         }
         // Check exception ratio mode.
+        //如果按照百分比，但是配置的阀值>1,则也不生效
         if (rule.getGrade() == RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO && rule.getCount() > 1) {
             return false;
         }
