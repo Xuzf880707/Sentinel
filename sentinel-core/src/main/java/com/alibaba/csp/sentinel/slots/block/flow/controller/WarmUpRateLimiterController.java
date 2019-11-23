@@ -50,7 +50,7 @@ public class WarmUpRateLimiterController extends WarmUpController {
         long restToken = storedTokens.get();
         long costTime = 0;
         long expectedTime = 0;
-        if (restToken >= warningToken) {
+        if (restToken >= warningToken) {//桶中剩余的令牌数>=预警
             long aboveToken = restToken - warningToken;
 
             // current interval = restToken*slope+1/count

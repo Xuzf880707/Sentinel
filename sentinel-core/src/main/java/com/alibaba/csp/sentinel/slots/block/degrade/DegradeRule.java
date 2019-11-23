@@ -206,20 +206,25 @@ public class DegradeRule extends AbstractRule {
                 return true;
             }
         } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO) {//如果根据错误比
-            double exception = clusterNode.exceptionQps();//前一秒的每秒异常数(业务异常)
-            double success = clusterNode.successQps();//前一秒的每秒成功数（包括拿到token但是抛出业务异常的请求）
-            double total = clusterNode.totalQps();//前一秒总的请求数
-            // if total qps less than RT_MAX_EXCEED_N, pass.
-            if (total < RT_MAX_EXCEED_N) {//如果总的查询嗨未超过默认的阀值，则直接反省
+            // 1、exception=success=1
+            double exception = clusterNode.exceptionQps();//前一秒的每秒异常数(业务异常) 1
+            // 2、success=2
+            double success = clusterNode.successQps();//前一秒的每秒成功数（包括拿到token但是抛出业务异常的请求） 2
+            //3、total=5
+            double total = clusterNode.totalQps();//前一秒总的请求数 5
+            // if total qps less than RT_MAX_EXCEED_N, pass.（包括：获得token但是业务失败+获得token且业务成功+没获得token）
+            if (total < RT_MAX_EXCEED_N) {//如果总的查询还未超过默认的阀值，则直接反省
                 return true;
             }
-            //计算真正的成功请求数，也就是
-            double realSuccess = success - exception;
-            if (realSuccess <= 0 && exception < RT_MAX_EXCEED_N) {
+            //计算真正的成功请求数，也就是 获得token且业务成功=获得token成功数-异常数
+            double realSuccess = success - exception; //2-1=0，
+            if (realSuccess <= 0//如果我的realSuccess>0,就不用判断exception的最小值是否满足阈值
+                    && exception < RT_MAX_EXCEED_N//获得token但是业务失败
+                    ) {
                 return true;
             }
             //如果失败数/成功数<count，也就是小于阀值，则放行，不然打开熔断开关
-            if (exception / success < count) {
+            if (exception / success < count) {//1/2=50%
                 return true;
             }
         } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_COUNT) {//如果根据异常数
