@@ -22,6 +22,7 @@ package com.alibaba.csp.sentinel.slotchain;
  * @author leyou
  * @author Eric Zhao
  * SlotChainBuilder提供了SPI功能
+ * 所以用户可以自己实现该接口，并重写build方法，重定义处理链的顺序
  */
 public interface SlotChainBuilder {
 
@@ -29,6 +30,7 @@ public interface SlotChainBuilder {
      * Build the processor slot chain.
      *
      * @return a processor slot that chain some slots together
+     * 构建一个处理链：ProcessorSlotChain
      */
     ProcessorSlotChain build();
 }

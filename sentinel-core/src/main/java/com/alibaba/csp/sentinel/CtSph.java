@@ -131,6 +131,7 @@ public class CtSph implements Sph {
      * 2、为资源ResourceWrapper绑定一个过滤链ProcessorSlot，一个资源对应一个过滤链。后续沿着链路做验证。
      *      如果本地内存里CtSph.chainMap已存在一个对应的过滤链，则直接返回，如果chainMap中的元素超过6000个，则直接返回空
      * 3、创建一个资源对象entry，当前资源对应的Entry添加到context的curEntry
+     * 4、处理链ProcessorSlot 根据限流等规则对资源进行检查校验，判断是否匹配所有的规则(限流、熔断、降级等)
      */
     private Entry entryWithPriority(ResourceWrapper resourceWrapper, int count, boolean prioritized, Object... args)
         throws BlockException {
@@ -201,7 +202,7 @@ public class CtSph implements Sph {
      * 根据资源获得规则处理链，如果当前资源未绑定一个处理链的话，则新建一个，该方法使用了一个HashMap做了缓存，key是资源对象
      *      如果本地内存里CtSph.chainMap已存在一个对应的过滤链，则直接返回，如果chainMap中的元素超过6000个，则直接返回空
      *      相同的资源会共享全部的规则链，无论是在哪一个context里
-     * 1、
+     * 1、使用 SlotChainProvider 实现类创建一个处理链
      */
     ProcessorSlot<Object> lookProcessChain(ResourceWrapper resourceWrapper) {
         ProcessorSlotChain chain = chainMap.get(resourceWrapper);
@@ -213,8 +214,9 @@ public class CtSph implements Sph {
                     if (chainMap.size() >= Constants.MAX_SLOT_CHAIN_SIZE) {
                         return null;
                     }
-                    //通过spi加载一个规则处理链
+                    //通过spi加载一个规则处理链ProcessorSlotChain
                     chain = SlotChainProvider.newSlotChain();
+                    //把resourceWrapper->chain 更新到本地内存里，下次同一资源可直接获取
                     Map<ResourceWrapper, ProcessorSlotChain> newMap = new HashMap<ResourceWrapper, ProcessorSlotChain>(
                         chainMap.size() + 1);
                     newMap.putAll(chainMap);
