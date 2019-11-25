@@ -21,6 +21,7 @@ package com.alibaba.csp.sentinel.slotchain;
  * @author qinan.qn
  * @author leyou
  * @author Eric Zhao
+ * SlotChainBuilder提供了SPI功能
  */
 public interface SlotChainBuilder {
 

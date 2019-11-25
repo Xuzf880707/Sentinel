@@ -117,33 +117,40 @@ public class CtSph implements Sph {
 
     /***
      *
-     * @param resourceWrapper 资源
+     * @param resourceWrapper 资源对象
      * @param count 需要的信号量数
      * @param prioritized  是否优先处理
-     * @param args
+     * @param args 附加参数，也可以被热点参数规则统计
      * @return
      * @throws BlockException
+     *
+     * 1、检查 ThreadLocal中的context=NullContext：
+     *      如果是一个NullContext，表明context数量超过限制了，则这里只是初始化entry，不需要做规则检查
+     *      如果context==null，则返回一个默认的name=sentinel_default_context的 CtEntry
+     *      如果规则校验全局开关是关闭，则直接返回一个不需要做任何检查的CtEntry
+     * 2、为资源ResourceWrapper绑定一个过滤链ProcessorSlot，一个资源对应一个过滤链。后续沿着链路做验证。
+     *      如果本地内存里CtSph.chainMap已存在一个对应的过滤链，则直接返回，如果chainMap中的元素超过6000个，则直接返回空
+     * 3、创建一个资源对象entry，当前资源对应的Entry添加到context的curEntry
      */
     private Entry entryWithPriority(ResourceWrapper resourceWrapper, int count, boolean prioritized, Object... args)
         throws BlockException {
         Context context = ContextUtil.getContext();//从线程中获得上下文
         if (context instanceof NullContext) {//表明context要获得资源数量超过限制了
-            // The {@link NullContext} indicates that the amount of context has exceeded the threshold,
-            // so here init the entry only. No rule checking will be done.
+            //如果是一个NullContext，表明context数量超过限制了，则这里只是初始化entry，不需要做规则检查
             return new CtEntry(resourceWrapper, null, context);
         }
-        //获得默认的资源数
+        //获取默认的资源
         if (context == null) {
             // Using default context.
             context = MyContextUtil.myEnter(Constants.CONTEXT_DEFAULT_NAME, "", resourceWrapper.getType());
         }
 
-        // Global switch is close, no rule checking will do.
         //如果 全局开关关闭，则无需用rule进行检查
         if (!Constants.ON) {
             return new CtEntry(resourceWrapper, null, context);
         }
         //将该资源绑定ProcessorSlotChain链，后续在获得一个资源的时候，需要沿着链路做验证
+        //如果本地内存里CtSph.chainMap已存在一个对应的过滤链，则直接返回，如果chainMap中的元素超过6000个，则直接返回空
         ProcessorSlot<Object> chain = lookProcessChain(resourceWrapper);
         /*
          * Means amount of resources (slot chain) exceeds {@link Constants.MAX_SLOT_CHAIN_SIZE},
@@ -180,36 +187,21 @@ public class CtSph implements Sph {
      *
      * @param resourceWrapper resource name 资源名称
      * @param count           tokens needed 需要的token数，也就是类似信号量数
-     * @param args            arguments of user method call 方法调用需要的参数
+     * @param args             附加参数，也可以被热点参数规则统计
      * @return {@link Entry} represents this call
      * @throws BlockException if any rule's threshold is exceeded
      */
     public Entry entry(ResourceWrapper resourceWrapper, int count, Object... args) throws BlockException {
         return entryWithPriority(resourceWrapper, count, false, args);
     }
-
-    /**
-     * 根据资源获得规则处理链，如果当前资源未绑定一个处理链的话，则新建一个
-     * Get {@link ProcessorSlotChain} of the resource. new {@link ProcessorSlotChain} will
-     * be created if the resource doesn't relate one.
-     *相同的资源会共享全部的规则链，无论是在哪一个context里
-     * <p>Same resource({@link ResourceWrapper#equals(Object)}) will share the same
-     * {@link ProcessorSlotChain} globally, no matter in witch {@link Context}.<p/>
-     *
-     * <p>
-     *     注意，全部资源数量不能超过限制
-     * Note that total {@link ProcessorSlot} count must not exceed {@link Constants#MAX_SLOT_CHAIN_SIZE},
-     * otherwise null will return.
-     * </p>
-     *
-     * @param resourceWrapper target resource
-     * @return {@link ProcessorSlotChain} of the resource
-     */
     /***
      *
      * @param resourceWrapper
      * @return
-     * 该方法使用了一个HashMap做了缓存，key是资源对象
+     * 根据资源获得规则处理链，如果当前资源未绑定一个处理链的话，则新建一个，该方法使用了一个HashMap做了缓存，key是资源对象
+     *      如果本地内存里CtSph.chainMap已存在一个对应的过滤链，则直接返回，如果chainMap中的元素超过6000个，则直接返回空
+     *      相同的资源会共享全部的规则链，无论是在哪一个context里
+     * 1、
      */
     ProcessorSlot<Object> lookProcessChain(ResourceWrapper resourceWrapper) {
         ProcessorSlotChain chain = chainMap.get(resourceWrapper);
@@ -325,14 +317,12 @@ public class CtSph implements Sph {
         return entry(resource, count, args);
     }
 
-    /**
+    /***
      *
-     * @param name  the unique name for the protected resource 受保护的资源名称
-     * @param type  the resource is an inbound or an outbound method. This is used
-     *              to mark whether it can be blocked when the system is unstable
-     *              用来区分是流入还是流出的
-     * @param count the count that the resource requires 需要获得资源个数
-     * @param args  the parameters of the method. It can also be counted by setting hot parameter rule
+     * @param name  受保护的资源名称，全局唯一
+     * @param type  资源类型，用来区分是流入还是流出的，标记当系统不稳定时，是否可以被阻塞
+     * @param count 尝试获取的资源数量
+     * @param args  附加参数，也可以被热点参数规则统计
      * @return
      * @throws BlockException
      */
@@ -340,6 +330,7 @@ public class CtSph implements Sph {
     public Entry entry(String name, EntryType type, int count, Object... args) throws BlockException {
         //根据资源名称获得一个资源包装对象StringResourceWrapper
         StringResourceWrapper resource = new StringResourceWrapper(name, type);
+        //尝试获得count个资源
         return entry(resource, count, args);
     }
 

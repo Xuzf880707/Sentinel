@@ -39,12 +39,18 @@ public final class SlotChainProvider {
      * via {@code lookProcessChain} in {@link com.alibaba.csp.sentinel.CtSph} under lock.
      *
      * @return new created slot chain
+     * 新建一个ProcessorSlotChain
+     * 1、如果builder已存在，表示这个 SlotChainBuilder 实现类已确定，则直接返回这个SlotChainBuilder实现类
+     * 2、如果builder不存在，则根据SPI功能加载新建一个SlotChainBuilder
+     * 3、使用SlotChainBuilder实现类的build方法新建一个处理链ProcessorSlotChain
      */
     public static ProcessorSlotChain newSlotChain() {
         if (builder != null) {
             return builder.build();
         }
-
+        /***
+         * 通过SPI功能加载SlotChainBuilder的所有实现类
+         */
         resolveSlotChainBuilder();
 
         if (builder == null) {
@@ -54,6 +60,11 @@ public final class SlotChainProvider {
         return builder.build();
     }
 
+    /**
+     * 通过SPI功能加载 SlotChainBuilder 的所有实现类
+     * 1、采用SPI加载SlotChainBuilder的实现类
+     * 2、如果存在非DefaultSlotChainBuilder的实现类，则才用非默认的实现类
+     */
     private static void resolveSlotChainBuilder() {
         List<SlotChainBuilder> list = new ArrayList<SlotChainBuilder>();
         boolean hasOther = false;

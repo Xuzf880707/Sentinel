@@ -34,7 +34,10 @@ import com.alibaba.csp.sentinel.slots.system.SystemSlot;
  * @author leyou
  */
 public class DefaultSlotChainBuilder implements SlotChainBuilder {
-
+    /***
+     * 构建一个默认的处理链
+     * @return
+     */
     @Override
     public ProcessorSlotChain build() {
         ProcessorSlotChain chain = new DefaultProcessorSlotChain();

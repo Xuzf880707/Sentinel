@@ -73,7 +73,9 @@ import com.alibaba.csp.sentinel.slots.system.SystemRuleManager;
  * @see SphO
  */
 public class SphU {
-
+    /**
+     * 初始化一个空数组
+     */
     private static final Object[] OBJECTS0 = new Object[0];
 
     /**
@@ -87,6 +89,7 @@ public class SphU {
      * @param name 受保护的资源名称，必须是全局唯一
      * @return
      * @throws BlockException
+     * 尝试获取受保护的资源
      */
     public static Entry entry(String name) throws BlockException {
         //根据资源名称获得 Entry，默认只要获得一个信号量就好

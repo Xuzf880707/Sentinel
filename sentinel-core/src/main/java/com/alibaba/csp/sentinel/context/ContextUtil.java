@@ -41,6 +41,8 @@ import com.alibaba.csp.sentinel.slots.nodeselector.NodeSelectorSlot;
  * @author jialiang.linjl
  * @author leyou(lihao)
  * @author Eric Zhao
+ *
+ * 初始化一条调用链，并绑定当前线程
  */
 public class ContextUtil {
 
