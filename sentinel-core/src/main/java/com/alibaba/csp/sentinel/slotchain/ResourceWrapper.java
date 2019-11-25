@@ -24,8 +24,13 @@ import com.alibaba.csp.sentinel.EntryType;
  * @author jialiang.linjl
  */
 public abstract class ResourceWrapper {
-
+    /***
+     * 资源名称
+     */
     protected String name;
+    /**
+     * 资源类型（默认是输入）
+     */
     protected EntryType type = EntryType.OUT;
 
     public abstract String getName();

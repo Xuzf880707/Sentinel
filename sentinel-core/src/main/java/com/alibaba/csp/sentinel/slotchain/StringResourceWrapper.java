@@ -22,9 +22,16 @@ import com.alibaba.csp.sentinel.EntryType;
  *
  * @author qinan.qn
  * @author jialiang.linjl
+ *
+ * 资源的包装类
  */
-public class StringResourceWrapper extends ResourceWrapper {
 
+public class StringResourceWrapper extends ResourceWrapper {
+    /***
+     * 初始化一个资源对象
+     * @param name 资源名称
+     * @param type 资源类型
+     */
     public StringResourceWrapper(String name, EntryType type) {
         if (name == null) {
             throw new IllegalArgumentException("Resource name cannot be null");
