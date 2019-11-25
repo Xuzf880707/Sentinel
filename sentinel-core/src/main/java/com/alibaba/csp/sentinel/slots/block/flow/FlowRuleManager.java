@@ -49,8 +49,8 @@ import com.alibaba.csp.sentinel.property.SentinelProperty;
 public class FlowRuleManager {
     /***
      * 通过一个本地全局变量来维护限流规则列表：
-     *      key：
-     *      value：
+     *      key： 资源名称
+     *      value： 一个资源可以配置多个限流规则
      */
     private static final Map<String, List<FlowRule>> flowRules = new ConcurrentHashMap<String, List<FlowRule>>();
 
@@ -98,6 +98,7 @@ public class FlowRuleManager {
      * Get a copy of the rules.
      *
      * @return a new copy of the rules.
+     * 遍历获得全部限流规则
      */
     public static List<FlowRule> getRules() {
         List<FlowRule> rules = new ArrayList<FlowRule>();
@@ -120,17 +121,29 @@ public class FlowRuleManager {
         return flowRules;
     }
 
+    /***
+     * 判断是否为某个资源配置了限流规则
+     * @param resource
+     * @return
+     */
     public static boolean hasConfig(String resource) {
         return flowRules.containsKey(resource);
     }
 
+    /**
+     * 判断调用来源
+     * @param origin 调用来源
+     * @param resourceName 资源名称
+     * @return
+     */
     public static boolean isOtherOrigin(String origin, String resourceName) {
+        //如果来源信息是空的，直接返回false
         if (StringUtil.isEmpty(origin)) {
             return false;
         }
-
+        //根据资源名称获得所有的限流规则
         List<FlowRule> rules = flowRules.get(resourceName);
-
+        //如果某个限流规则限制的app的确和目标origin一致，说明 other的调用源
         if (rules != null) {
             for (FlowRule rule : rules) {
                 if (origin.equals(rule.getLimitApp())) {
@@ -142,6 +155,9 @@ public class FlowRuleManager {
         return true;
     }
 
+    /***
+     * 负责监听并更新全局的限流规则
+     */
     private static final class FlowPropertyListener implements PropertyListener<List<FlowRule>> {
         //给监听器分配规则
         @Override
