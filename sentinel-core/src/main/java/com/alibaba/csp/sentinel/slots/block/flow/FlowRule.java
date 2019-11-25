@@ -52,12 +52,15 @@ public class FlowRule extends AbstractRule {
     }
 
     /**
-     * The threshold type of flow control (0: thread count, 1: QPS).
+     * 限流方式：默认按照QPS限流
+     * 0-按照线程数限流
+     * 2-按照QPS限流
      */
     private int grade = RuleConstant.FLOW_GRADE_QPS;
 
     /**
      * Flow control threshold count.
+     * 限流的阈值数
      */
     private double count;
 
@@ -82,6 +85,7 @@ public class FlowRule extends AbstractRule {
 
     /**
      * Reference resource in flow control with relevant resource or context.
+     * 规则的资源
      */
     private String refResource;
 
@@ -95,11 +99,16 @@ public class FlowRule extends AbstractRule {
      * @return
      */
     private int controlBehavior = RuleConstant.CONTROL_BEHAVIOR_DEFAULT;
-
+    /***
+     * 如果采用冷却模式，则该值表示到达目标值需要的时间
+     */
     private int warmUpPeriodSec = 10;
 
     /**
      * Max queueing time in rate limiter behavior.
+     */
+    /***
+     * 如果是排队限流，这个时间表示最大的排队等待时间
      */
     private int maxQueueingTimeMs = 500;
     //标识是否为集群限流配置
