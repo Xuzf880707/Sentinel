@@ -49,6 +49,12 @@ public class DynamicSentinelProperty<T> implements SentinelProperty<T> {
      * 更新FlowRuleManager中的rule
      * @param newValue the new value.
      * @return
+     * 会遍历当前DynamicSentinelProperty绑定的监听器列表，然后由监听器PropertyListener来更新全局限流规则：
+     *      FlowRuleManager.flowRules
+     *
+     * 自定义持久化的存储源(RedisDataSource\NacosDataSource\ZookeeperDataSource\ApolloDataSource)都是利用自己监听底层存储的变化，
+     * 进而主动通过它们本身持有的DynamicSentinelProperty引用的updateValue方法，从而通过DynamicSentinelProperty绑定的listner来更新
+     * FlowRuleManager.flowRules，从而实现规则的动态持久化
      */
     @Override
     public boolean updateValue(T newValue) {

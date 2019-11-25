@@ -80,6 +80,9 @@ public class FlowRuleManager {
      * Flow rules can also be set by {@link #loadRules(List)} directly.
      *
      * @param property the property to listen.
+     * 为property绑定一个监听器，这样后面调用property.updateValue的时候就可以通过LISTENER来更新全局的限流规则
+     *   (自定义的持久化的datasource，就是通过绑定一个SentinelProperty，后面监听规则变化，如果规则变化的话。
+     *     就会调用SentinelProperty.updateValue方法从而更新全局变量FlowRuleManager.flowRules属性)
      */
     public static void register2Property(SentinelProperty<List<FlowRule>> property) {
         AssertUtil.notNull(property, "property cannot be null");
