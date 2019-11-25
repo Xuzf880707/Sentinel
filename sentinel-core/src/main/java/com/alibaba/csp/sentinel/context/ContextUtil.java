@@ -266,10 +266,6 @@ public class ContextUtil {
 
     /**
      * <p>
-     * Replace current context with the provided context.
-     * This is mainly designed for context switching (e.g. in asynchronous invocation).
-     * </p>
-     * <p>
      * Note: When switching context manually, remember to restore the original context.
      * For common scenarios, you can use {@link #runOnContext(Context, Runnable)}.
      * </p>
