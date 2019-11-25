@@ -25,6 +25,7 @@ public abstract class AbstractRule implements Rule {
 
     /**
      * Resource name.
+     * 资源名称，限流的控制粒度
      */
     private String resource;
 
@@ -37,21 +38,40 @@ public abstract class AbstractRule implements Rule {
      * For authority rules, multiple origin name can be separated with comma (',').
      * </p>
      */
+    /***
+     * 调用来源名称：默认是default
+     */
     private String limitApp;
 
+    /**
+     * 获取规则限制的资源名称
+     * @return
+     */
     public String getResource() {
         return resource;
     }
 
+    /***
+     * 设置规则限制的资源名称
+     * @param resource
+     * @return
+     */
     public AbstractRule setResource(String resource) {
         this.resource = resource;
         return this;
     }
 
+    /***
+     * 获取规则限制的app名称
+     * @return
+     */
     public String getLimitApp() {
         return limitApp;
     }
-
+    /***
+     * 设置规则限制的app名称
+     * @return
+     */
     public AbstractRule setLimitApp(String limitApp) {
         this.limitApp = limitApp;
         return this;

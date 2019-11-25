@@ -32,7 +32,7 @@ public interface ReadableDataSource<S, T> {
      *
      * @return the target data.
      * @throws Exception IO or other error occurs
-     * 将原始数据转换成我们需要的格式
+     * 将原始数据转换成我们需要的格式，是由转换器处理的
      */
     T loadConfig() throws Exception;
 

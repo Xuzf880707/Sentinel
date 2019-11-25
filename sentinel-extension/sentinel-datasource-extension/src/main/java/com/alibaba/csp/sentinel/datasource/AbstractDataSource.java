@@ -25,10 +25,21 @@ import com.alibaba.csp.sentinel.property.SentinelProperty;
  * @param <T> target data type
  * @author Carpenter Lee
  * @author Eric Zhao
+ *
+ * 这是一个从数据源读取配置的抽象实现类
+ *
+ * 实际上每个具体的 DataSource 实现类需要做三件事：
+ *      1、实现readSource 方法，将数据源中的原始数据转换成我们可以处理的数据S
+ *      2、提供一个 Converter 来将数据S转换成最终的数据T
+ *      3、将最终的数据T更新到具体的 RuleManager 中去（由SentinelProperty触发更新），所以最终更新规则的事情是PropertyListener去做的
  */
 public abstract class AbstractDataSource<S, T> implements ReadableDataSource<S, T> {
-
+    /***
+     * 这是一个转换器，负责转换数据，将数据S转换成目标T
+     */
     protected final Converter<S, T> parser;
+    // SentinelProperty接口负责触发PropertyListener
+    // 的configUpdate方法的回调,触发configUpdate回调后会更新相应的:RuleMananger
     protected final SentinelProperty<T> property;
 
     public AbstractDataSource(Converter<S, T> parser) {

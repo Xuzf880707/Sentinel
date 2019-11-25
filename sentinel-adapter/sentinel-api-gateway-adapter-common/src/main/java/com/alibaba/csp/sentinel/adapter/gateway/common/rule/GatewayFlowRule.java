@@ -24,14 +24,19 @@ import com.alibaba.csp.sentinel.slots.block.RuleConstant;
  * @author Eric Zhao
  * @since 1.6.0
  */
-public class GatewayFlowRule {
 
-    private String resource;//资源名称
-    //规则是针对 API Gateway 的 route（RESOURCE_MODE_ROUTE_ID）
-    // 还是用户在 Sentinel 中定义的 API 分组（RESOURCE_MODE_CUSTOM_API_NAME），默认是 route。
+/***
+ * 网关限流规则，针对 API Gateway 的场景定制的限流规则，可以针对不同 route 或自定义的 API 分组进行限流，
+ * 支持针对请求中的参数、Header、来源 IP 等进行定制化的限流。
+ */
+public class GatewayFlowRule {
+    //资源名称，可以是网关中的 route 名称或者用户自定义的 API 分组名称。
+    private String resource;
+    //规则是针对 API Gateway 的 route（RESOURCE_MODE_ROUTE_ID）, 还是用户在 Sentinel 中定义的 API 分组（RESOURCE_MODE_CUSTOM_API_NAME），默认是 route。
     private int resourceMode = SentinelGatewayConstants.RESOURCE_MODE_ROUTE_ID;
     //限流指标维度，同限流规则的 grade 字段。
     private int grade = RuleConstant.FLOW_GRADE_QPS;
+    //限流阈值
     private double count;
     private long intervalSec = 1;//统计时间窗口，单位是秒，默认是 1 秒。
     //流量整形的控制效果，同限流规则的 controlBehavior 字段，目前支持快速失败和匀速排队两种模式，默认是快速失败。

@@ -27,7 +27,7 @@ import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 public class ClusterFlowConfig {
 
     /**
-     * （必需）全局唯一的规则 ID，由集群限流管控端分配.
+     * （必需）全局唯一的规则 ID，由集群限流管控端分配.Sentinel 集群限流服务端通过此 ID 来区分各个规则，因此务必保持全局唯一。
      * 一般 flowId 由统一的管控端进行分配，或写入至 DB 时生成
      * Global unique ID.
      */
@@ -36,6 +36,9 @@ public class ClusterFlowConfig {
     /**
      * Threshold type (average by local value or global value).
      * //阈值模式，默认（0）为单机均摊，1 为全局阈值.
+     *
+     * 其中单机均摊模式下配置的阈值等同于单机能够承受的限额，token server 会根据客户端对应的 namespace（默认为 project.name 定义的应用名）下的连接数来计算总的阈值（比如独立模式下有 3 个 client 连接到了 token server，然后配的单机均摊阈值为 10，则计算出的集群总量就为 30）；
+     * 而全局模式下配置的阈值等同于整个集群的总阈值。
      */
     private int thresholdType = ClusterRuleConstant.FLOW_THRESHOLD_AVG_LOCAL;
     //在 client 连接失败或通信失败时，是否退化到本地的限流模式

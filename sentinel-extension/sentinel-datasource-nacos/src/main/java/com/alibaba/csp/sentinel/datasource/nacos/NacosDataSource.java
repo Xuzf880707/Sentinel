@@ -38,6 +38,10 @@ import com.alibaba.nacos.api.config.listener.Listener;
  * Nacos will automatically push the new value so that the dynamic configuration can be real-time.
  *
  * @author Eric Zhao
+ * 每个具体的 DataSource 实现类需要做三件事：
+ *      1、实现readSource 方法，将数据源中的原始数据转换成我们可以处理的数据S
+ *      2、提供一个 Converter 来将数据S转换成最终的数据T
+ *      3、将最终的数据T更新到具体的 RuleManager 中去
  */
 public class NacosDataSource<T> extends AbstractDataSource<String, T> {
 

@@ -206,7 +206,6 @@ public class DegradeRule extends AbstractRule {
                 return true;
             }
         } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO) {//如果根据错误比
-            // 1、exception=success=1
             double exception = clusterNode.exceptionQps();//前一秒的每秒异常数(业务异常) 1
             // 2、success=2
             double success = clusterNode.successQps();//前一秒的每秒成功数（包括拿到token但是抛出业务异常的请求） 2

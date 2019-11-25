@@ -36,7 +36,10 @@ import com.alibaba.csp.sentinel.slots.block.RuleConstant;
  * @author Eric Zhao
  */
 public class FlowRule extends AbstractRule {
-
+    /***
+     * 创建一个FlowRule对象，
+     *      初始化app限制为default，也就是限制所有的来源
+     */
     public FlowRule() {
         super();//初始化默认参数
         setLimitApp(RuleConstant.LIMIT_APP_DEFAULT);//设置默认的限制app名称
@@ -65,6 +68,16 @@ public class FlowRule extends AbstractRule {
      * {@link RuleConstant#STRATEGY_RELATE} for relevant flow control (with relevant resource);
      * {@link RuleConstant#STRATEGY_CHAIN} for chain flow control (by entrance resource).
      */
+    /**
+     * 基于调用关系的流量控制
+     * STRATEGY_DIRECT：根据调用方进行限流。ContextUtil.enter(resourceName, origin) 方法中的 origin 参数标明了调用方的身份。
+     *      如果 strategy 选择了DIRECT，则还需要根据限流规则中的 limitApp 字段根据调用方在不同的场景中进行流量控制，包括有：”所有调用方“、”特定调用方origin“、”除特定调用方origin之外的调用方“。
+     *
+     * STRATEGY_RELATE：根据关联流量限流。当两个资源之间具有资源争抢或者依赖关系的时候，这两个资源便具有了关联，可使用关联限流来避免具有关联关系的资源之间过度的争抢。
+     *
+     * STRATEGY_CHAIN：根据调用链路入口限流。假设来自入口 Entrance1 和 Entrance2 的请求都调用到了资源 NodeA，Sentinel 允许根据某个入口的统计信息对资源进行限流。
+     *
+     */
     private int strategy = RuleConstant.STRATEGY_DIRECT;
 
     /**
@@ -72,9 +85,14 @@ public class FlowRule extends AbstractRule {
      */
     private String refResource;
 
-    /**
-     * Rate limiter control behavior.
-     * 0. default(reject directly), 1. warm up, 2. rate limiter, 3. warm up + rate limiter
+    /***
+     * 设置限流的方式：
+     *     CONTROL_BEHAVIOR_DEFAULT = 0;//该方式是默认的流量控制方式，当 qps 超过任意规则的阈值后，新的请求就会被立即拒绝，拒绝方式为抛出FlowException。
+     *     CONTROL_BEHAVIOR_WARM_UP = 1;//又称为 冷启动。该方式主要用于当系统长期处于低水位的情况下，流量突然增加时，直接把系统拉升到高水位可能瞬间把系统压垮。
+     *     CONTROL_BEHAVIOR_RATE_LIMITER = 2;//这种方式严格控制了请求通过的间隔时间，也即是让请求以均匀的速度通过，对应的是漏桶算法。
+     *     CONTROL_BEHAVIOR_WARM_UP_RATE_LIMITER = 3;//
+     * @param controlBehavior
+     * @return
      */
     private int controlBehavior = RuleConstant.CONTROL_BEHAVIOR_DEFAULT;
 
@@ -100,6 +118,7 @@ public class FlowRule extends AbstractRule {
     public int getControlBehavior() {
         return controlBehavior;
     }
+
 
     public FlowRule setControlBehavior(int controlBehavior) {
         this.controlBehavior = controlBehavior;
