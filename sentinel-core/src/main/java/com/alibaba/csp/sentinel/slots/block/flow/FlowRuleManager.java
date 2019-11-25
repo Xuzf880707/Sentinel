@@ -43,12 +43,26 @@ import com.alibaba.csp.sentinel.property.SentinelProperty;
  *
  * @author jialiang.linjl
  * @author Eric Zhao
+ *
+ * 这是一个限流规则的管理类
  */
 public class FlowRuleManager {
-
+    /***
+     * 通过一个本地全局变量来维护限流规则列表：
+     *      key：
+     *      value：
+     */
     private static final Map<String, List<FlowRule>> flowRules = new ConcurrentHashMap<String, List<FlowRule>>();
 
     private static final FlowPropertyListener LISTENER = new FlowPropertyListener();
+    /**
+     * currentProperty，默认是实现类：DynamicSentinelProperty
+     *      包含一组监听规则变化的监听器：Set<PropertyListener<T>> listeners。
+     *      这个属性会通过updateValues(List<FlowRule> rules)，将一组rules交给监听器列表listeners来处理。listeners会遍历监听器，然后由监听器来更新FlowRuleManager的全局变量flowRules
+     *
+     *  目前默认的监听器实现：FlowPropertyListener
+     *  用户可自己实现动态加载规则，并交给FlowRuleManager.register2Property注册
+     */
     private static SentinelProperty<List<FlowRule>> currentProperty = new DynamicSentinelProperty<List<FlowRule>>();
 
     @SuppressWarnings("PMD.ThreadPoolCreationRule")
