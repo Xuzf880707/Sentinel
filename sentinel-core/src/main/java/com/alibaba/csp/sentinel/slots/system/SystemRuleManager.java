@@ -64,14 +64,19 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
  * @author leyou
  */
 public class SystemRuleManager {
-
+    //当系统 load1 超过阈值，且系统当前的并发线程数超过系统容量时才会触发系统保护。
+    // 系统容量由系统的 maxQps * minRt 计算得出。设定参考值一般是 CPU cores * 2.5。
     private static volatile double highestSystemLoad = Double.MAX_VALUE;
     /**
      * cpu usage, between [0, 1]
      */
+    //当系统 CPU 使用率超过阈值即触发系统保护（取值范围 0.0-1.0）。
     private static volatile double highestCpuUsage = Double.MAX_VALUE;
+    //当单台机器上所有入口流量的 QPS 达到阈值即触发系统保护。
     private static volatile double qps = Double.MAX_VALUE;
+    //当单台机器上所有入口流量的平均 RT 达到阈值即触发系统保护，单位是毫秒。
     private static volatile long maxRt = Long.MAX_VALUE;
+    //当单台机器上所有入口流量的并发线程数达到阈值即触发系统保护。
     private static volatile long maxThread = Long.MAX_VALUE;
     /**
      * mark whether the threshold are set by user.
@@ -187,10 +192,13 @@ public class SystemRuleManager {
 
         @Override
         public void configUpdate(List<SystemRule> rules) {
+            //初始化各变量值
             restoreSetting();
             // systemRules = rules;
+            //遍历系统规则
             if (rules != null && rules.size() >= 1) {
                 for (SystemRule rule : rules) {
+                    //加载系统规则配置
                     loadSystemConf(rule);
                 }
             } else {
@@ -249,36 +257,37 @@ public class SystemRuleManager {
     public static void loadSystemConf(SystemRule rule) {
         boolean checkStatus = false;
         // Check if it's valid.
-
+        //如果配置了限制的最高的系统加载，则开启检查系统负载的开关
         if (rule.getHighestSystemLoad() >= 0) {
             highestSystemLoad = Math.min(highestSystemLoad, rule.getHighestSystemLoad());
             highestSystemLoadIsSet = true;
             checkStatus = true;
         }
-
+        //如果配置了限制的 CPU 使用率，则开启检查系统 CPU 使用率校验的开关
         if (rule.getHighestCpuUsage() >= 0) {
             highestCpuUsage = Math.min(highestCpuUsage, rule.getHighestCpuUsage());
             highestCpuUsageIsSet = true;
             checkStatus = true;
         }
-
+        //如果配置了限制的 平均响应时间RT，则开启检查系统平均响应RT的开关
         if (rule.getAvgRt() >= 0) {
             maxRt = Math.min(maxRt, rule.getAvgRt());
             maxRtIsSet = true;
             checkStatus = true;
         }
+        //如果配置了限制的 系统的最大线程数，则开启检查系统当前线程数的开关
         if (rule.getMaxThread() >= 0) {
             maxThread = Math.min(maxThread, rule.getMaxThread());
             maxThreadIsSet = true;
             checkStatus = true;
         }
-
+        //如果配置了限制的 系统的QPS，则开启检查系统QPS的开关
         if (rule.getQps() >= 0) {
             qps = Math.min(qps, rule.getQps());
             qpsIsSet = true;
             checkStatus = true;
         }
-
+        //开启检查系统状态的开关
         checkSystemStatus.set(checkStatus);
 
     }
@@ -288,6 +297,14 @@ public class SystemRuleManager {
      *
      * @param resourceWrapper the resource.
      * @throws BlockException when any system rule's threshold is exceeded.
+     * 我们每次在请求时都会维护一个全局的统计节点ENTRY_NODE，里面包含了整个实例的各种信息的统计：
+     *  1、检查系统状态的开关必须打开(前面我们看到只要配置了规则，就会打开)
+     *  2、资源类型必须是流入：EntryType.IN
+     *  3、检查全局的系统统计节点ENTRY_NODE的QPS，是否超过限制。
+     *  4、检查全局的系统统计节点ENTRY_NODE的maxThread，是否超过限制。
+     *  5、检查全局的系统统计节点ENTRY_NODE的maxRt，是否超过限制。
+     *  6、获得系统的当前的负载信息，判断是否超过限制。
+     *  7、获得系统的当前的CPU使用情况，判断是否超过限制。
      */
     public static void checkSystem(ResourceWrapper resourceWrapper) throws BlockException {
         // Ensure the checking switch is on.
