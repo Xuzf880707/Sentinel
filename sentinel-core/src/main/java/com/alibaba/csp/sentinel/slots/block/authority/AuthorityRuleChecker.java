@@ -26,7 +26,16 @@ import com.alibaba.csp.sentinel.util.StringUtil;
  * @since 0.2.0
  */
 final class AuthorityRuleChecker {
-
+    /***
+     * 根据认证规则校验当前的资源请求是否通过
+     * @param rule
+     * @param context
+     * @return
+     * 1、如果orgin或者limitApp为空，则直接放行(通过这里我们知道黑白名单只会对指定的orgin或limitApp进行校验)
+     * 2、如果调用源orgin不在限制的limitApp中，则直接放行
+     * 3、果limitApp字符串中包含orgin，这个时候就要一个个完整匹配了(避免：limitApp:"abcd"，orgin:"bc"这样的情况)
+     * 4、如果存在匹配的limitApp，则根据规则决定是否放行。
+     */
     static boolean passCheck(AuthorityRule rule, Context context) {
         String requester = context.getOrigin();
 
@@ -36,10 +45,10 @@ final class AuthorityRuleChecker {
             return true;
         }
 
-        // Do exact match with origin name.
+        // 如果调用源orgin不在限制的limitApp中，则直接放行
         int pos = rule.getLimitApp().indexOf(requester);
         boolean contain = pos > -1;
-
+        //如果limitApp字符串中包含orgin，这个时候就要一个个完整匹配了
         if (contain) {
             boolean exactlyMatch = false;
             String[] appArray = rule.getLimitApp().split(",");

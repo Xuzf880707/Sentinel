@@ -40,7 +40,9 @@ import com.alibaba.csp.sentinel.property.SentinelProperty;
 public final class AuthorityRuleManager {
 
     private static Map<String, Set<AuthorityRule>> authorityRules = new ConcurrentHashMap<>();
-
+    /***
+     * 绑定一个 RulePropertyListener的监听器
+     */
     private static final RulePropertyListener LISTENER = new RulePropertyListener();
     private static SentinelProperty<List<AuthorityRule>> currentProperty = new DynamicSentinelProperty<>();
 
@@ -48,12 +50,17 @@ public final class AuthorityRuleManager {
         currentProperty.addListener(LISTENER);
     }
 
+    /***
+     * 为property绑定相应的规则监听器，这样可以在规则property发生变化的时候，通知监听实时更新认证规则
+     * @param property
+     */
     public static void register2Property(SentinelProperty<List<AuthorityRule>> property) {
         AssertUtil.notNull(property, "property cannot be null");
         synchronized (LISTENER) {
             if (currentProperty != null) {
                 currentProperty.removeListener(LISTENER);
             }
+            //为property绑定相应的规则监听器
             property.addListener(LISTENER);
             currentProperty = property;
             RecordLog.info("[AuthorityRuleManager] Registering new property to authority rule manager");
@@ -78,6 +85,7 @@ public final class AuthorityRuleManager {
      * Get a copy of the rules.
      *
      * @return a new copy of the rules.
+     * 遍历当前环境所有的认证规则AuthorityRule
      */
     public static List<AuthorityRule> getRules() {
         List<AuthorityRule> rules = new ArrayList<>();

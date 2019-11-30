@@ -36,6 +36,7 @@ public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, DefaultNode node, int count, boolean prioritized, Object... args)
         throws Throwable {
+        //进行黑白名单的校验
         checkBlackWhiteAuthority(resourceWrapper, context);//检查用户白名单
         fireEntry(context, resourceWrapper, node, count, prioritized, args);
     }
@@ -45,6 +46,15 @@ public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
         fireExit(context, resourceWrapper, count, args);
     }
 
+    /***
+     *
+     * @param resource
+     * @param context
+     * @throws AuthorityException
+     * 1、从当前环境中加载所有的黑白名单的规则
+     * 2、根据资源名称获取对应的限制规则。
+     * 3、遍历黑白名单的规则，进行校验。
+     */
     void checkBlackWhiteAuthority(ResourceWrapper resource, Context context) throws AuthorityException {
         //从AuthorityRuleManager中的类变量中获得配置的黑白名单的规则
         Map<String, Set<AuthorityRule>> authorityRules = AuthorityRuleManager.getAuthorityRules();
