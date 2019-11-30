@@ -151,6 +151,7 @@ public class ClusterBuilderSlot extends AbstractLinkedProcessorSlot<DefaultNode>
      * @param id   resource name.
      * @param type invoke type.
      * @return the {@link ClusterNode}
+     * 根据资源名称查找 ClusterNode
      */
     public static ClusterNode getClusterNode(String id, EntryType type) {
         return clusterNodeMap.get(new StringResourceWrapper(id, type));
@@ -161,13 +162,14 @@ public class ClusterBuilderSlot extends AbstractLinkedProcessorSlot<DefaultNode>
      *
      * @param id resource name.
      * @return the {@link ClusterNode}.
+     * 根据资源名称查找 ClusterNode
      */
     public static ClusterNode getClusterNode(String id) {
         if (id == null) {
             return null;
         }
         ClusterNode clusterNode = null;
-
+        //遍历所有的类型，根据类型和资源名称查找clusterNode，找到即返回
         for (EntryType nodeType : EntryType.values()) {//从全局变量clusterNodeMap根据资源名称获取
             clusterNode = clusterNodeMap.get(new StringResourceWrapper(id, nodeType));
             if (clusterNode != null) {
@@ -192,10 +194,11 @@ public class ClusterBuilderSlot extends AbstractLinkedProcessorSlot<DefaultNode>
     /**
      * Reset all {@link ClusterNode}s. Reset is needed when {@link IntervalProperty#INTERVAL} or
      * {@link SampleCountProperty#SAMPLE_COUNT} is changed.
+     * 清空所有的ClusterNode的统计信息
      */
     public static void resetClusterNodes() {
-        for (ClusterNode node : clusterNodeMap.values()) {
-            node.reset();
+        for (ClusterNode node : clusterNodeMap.values()) {//遍历每个ClusterNode
+            node.reset();//清空ClusterNode统计信息
         }
     }
 }
