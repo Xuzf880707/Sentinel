@@ -22,7 +22,7 @@ import com.alibaba.csp.sentinel.context.Context;
  * @author jialiang.linjl
  */
 public class DefaultProcessorSlotChain extends ProcessorSlotChain {
-    //链表的头结点
+    //初始化一个head节点 不做任何逻辑，只是负责发起事件传播
     AbstractLinkedProcessorSlot<?> first = new AbstractLinkedProcessorSlot<Object>() {
 
         @Override
@@ -42,6 +42,20 @@ public class DefaultProcessorSlotChain extends ProcessorSlotChain {
     //链表的尾结点
     AbstractLinkedProcessorSlot<?> end = first;
 
+    /***
+     * 1、将原来first的后面节点加到目标节点的下一个节点
+     * 2、将当前节点设置为fast节点的下一个节点
+     * 3、如果一开始end指针指向的head节点，则要修改end指针的引用
+     *      注意：
+     *          first的指针指向head节点，不会变。因为head节点只是负责发起传播事件
+     *          end的指针在第一个节点加入的时候，修改引用。后续不会再变了
+     * eg:
+     *      before：head。（frist和end都指向head节点）
+     *      before: head->c。（frist指向head节点，end指向c节点）
+     *      after：head->b->c（frist指向head节点，end指向c节点）
+     *      after: head->a->b->c（frist指向head节点，end指向c节点）
+     * @param protocolProcessor 待添加的节点
+     */
     @Override
     public void addFirst(AbstractLinkedProcessorSlot<?> protocolProcessor) {
         protocolProcessor.setNext(first.getNext());
@@ -51,6 +65,11 @@ public class DefaultProcessorSlotChain extends ProcessorSlotChain {
         }
     }
 
+    /***
+     * 1、将新节点添加到末尾，并修改end的指针的引用
+     *      注意：每次新节点加入的时候，end指针都指向新的节点
+     * @param protocolProcessor 待添加的节点
+     */
     @Override
     public void addLast(AbstractLinkedProcessorSlot<?> protocolProcessor) {
         end.setNext(protocolProcessor);
@@ -81,6 +100,7 @@ public class DefaultProcessorSlotChain extends ProcessorSlotChain {
      * @param prioritized     whether the entry is prioritized
      * @param args            parameters of the original call
      * @throws Throwable
+     *  触发head节点开始传播事件
      */
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, Object t, int count, boolean prioritized, Object... args)
@@ -88,6 +108,13 @@ public class DefaultProcessorSlotChain extends ProcessorSlotChain {
         first.transformEntry(context, resourceWrapper, t, count, prioritized, args);
     }
 
+    /***
+     * 触发head节点开始传播跳出事件
+     * @param context         current {@link Context}
+     * @param resourceWrapper current resource
+     * @param count           tokens needed
+     * @param args            parameters of the original call
+     */
     @Override
     public void exit(Context context, ResourceWrapper resourceWrapper, int count, Object... args) {
         first.exit(context, resourceWrapper, count, args);
