@@ -183,7 +183,8 @@ public class DegradeRule extends AbstractRule {
      *          如果比例大于阈值，则打开开关熔断
      *
      *      c、DEGRADE_GRADE_EXCEPTION_COUNT：直接根据异常数熔断，直接判断异常数是否超过阈值，如果是，则打开熔断开关
-     *
+     * 4、如果满足熔断开关，则打开熔断开关。同时新建一个定时任务
+     *      定时任务是负责在指定的窗口时间timeWindow后，将熔断开关关闭，并且对通过的请求数进行清零，
      *
      */
     @Override
