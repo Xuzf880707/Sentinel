@@ -219,8 +219,9 @@ public class StatisticNode implements Node {
      *
      * @return
      *      从秒级的metric中获取两个指标：
-     *          当前时间所处的滑动窗口的统计值(默认滑动窗口是500ms)
-     *          每个滑动窗口的时间跨度(单位秒，这里默认是0.5s)
+     *          当前时间所处的采样时间段(默认是跨度两个滑动窗口）的统计值(默认每个滑动窗口是500ms)
+     *          采样的时间跨度(单位秒，这里默认是1s)
+     *     这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除
      */
     @Override
     public double exceptionQps() {
@@ -240,13 +241,14 @@ public class StatisticNode implements Node {
      *
      * @return
      *      从秒级的metric中获取两个指标：
-     *          当前时间所处的滑动窗口的统计值(默认滑动窗口是500ms)
-     *          每个滑动窗口的时间跨度(单位秒，这里默认是0.5s)
+     *          当前时间所处的采样时间段(默认是跨度两个滑动窗口）的统计值(默认每个滑动窗口是500ms)
+     *          采样的时间跨度(单位秒，这里默认是1s)
+     *     这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除
      */
     @Override
     public double passQps() {
-        //rollingCounterInSecond.pass()：当前时间所处的滑动窗口的psss 数的统计值(默认滑动窗口是500ms)
-        //rollingCounterInSecond.getWindowIntervalInSec():每个滑动时间窗的时间跨度，默认是0.5s
+        //rollingCounterInSecond.pass()：当前时间所处的采样时间的的psss 数的统计值(默认是2个滑动窗口是1000ms)
+        //rollingCounterInSecond.getWindowIntervalInSec():每个采样时间的跨度，默认是1s
         return rollingCounterInSecond.pass() / rollingCounterInSecond.getWindowIntervalInSec();
     }
 
@@ -263,8 +265,9 @@ public class StatisticNode implements Node {
      *
      * @return
      *      从秒级的metric中获取两个指标：
-     *          当前时间所处的滑动窗口的统计值(默认滑动窗口是500ms)
-     *          每个滑动窗口的时间跨度(单位秒，这里默认是0.5s)
+     *          当前时间所处的采样时间段(默认是跨度两个滑动窗口）的统计值(默认每个滑动窗口是500ms)
+     *          采样的时间跨度(单位秒，这里默认是1s)
+     *     这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除
      */
     @Override
     public double successQps() {
@@ -278,13 +281,14 @@ public class StatisticNode implements Node {
      *
      * @return
      *      从秒级的metric中获取两个指标：
-     *          单个时间窗口中请求成功的最大值
-     *          秒级metric的窗口数(默认是2个)
+     *          当前时间所处的采样时间段(默认是跨度两个滑动窗口）的统计值(默认每个滑动窗口是500ms)
+     *          采样的时间跨度(单位秒，这里默认是1s)
+     *     这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除
      */
     @Override
     public double maxSuccessQps() {
         /***
-         * rollingCounterInSecond.success()：单个时间窗口中请求成功的最大值
+         * rollingCounterInSecond.success()：单个每个采样时间中请求成功的最大值的滑动窗口(默认一个采样时间是2个滑动窗口，取较大那个)
          * rollingCounterInSecond.getSampleCount(): 秒级metric的窗口数
          */
         return rollingCounterInSecond.maxSuccess() * rollingCounterInSecond.getSampleCount();
@@ -293,8 +297,9 @@ public class StatisticNode implements Node {
      *
      * @return
      *      从秒级的metric中获取两个指标：
-     *          当前时间所处的滑动窗口的统计值(默认滑动窗口是500ms)
-     *          每个滑动窗口的时间跨度(单位秒，这里默认是0.5s)
+     *          当前时间所处的采样时间段(默认是跨度两个滑动窗口）的统计值(默认每个滑动窗口是500ms)
+     *          采样的时间跨度(单位秒，这里默认是1s)
+     *     这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除
      */
     @Override
     public double occupiedPassQps() {
@@ -303,6 +308,7 @@ public class StatisticNode implements Node {
 
     /****
      * 获得平均响应时间=整个滑动窗口数组中所有元素的的rt总和/成功数总和
+     * （这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除）
      * @return
      */
     @Override

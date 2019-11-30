@@ -29,7 +29,16 @@ import com.alibaba.csp.sentinel.slotchain.ResourceWrapper;
  *  则通过统计信息，以及预设的规则，来做熔断降级
  */
 public class DegradeSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
-
+    /***
+     * 开始检查熔断规则
+     * @param context         current {@link Context}
+     * @param resourceWrapper current resource
+     * @param node
+     * @param count           tokens needed
+     * @param prioritized     whether the entry is prioritized
+     * @param args            parameters of the original call
+     * @throws Throwable
+     */
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, DefaultNode node, int count, boolean prioritized, Object... args)
         throws Throwable {

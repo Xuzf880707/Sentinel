@@ -52,6 +52,8 @@ import com.alibaba.csp.sentinel.slots.clusterbuilder.ClusterBuilderSlot;
  * </ul>
  *
  * @author jialiang.linjl
+ *
+ * 熔断是依赖于clusterNode，所以是以资源为粒度进行熔断
  */
 public class DegradeRule extends AbstractRule {
 
@@ -168,51 +170,53 @@ public class DegradeRule extends AbstractRule {
      * @param args    arguments of the original invocation.
      * @return
      * 1、判断熔断开关是否打开：如果打开，则直接拒绝放行
-     * 2、获得资源对应的ClusterNode
+     * 2、获得资源对应的ClusterNode统计节点
      * 3、检查熔断规则
-     *      a、DEGRADE_GRADE_RT：根据响应时间熔断：
-     *          根据滑动窗口，计算当前滑动窗口的平均rt=滑动窗口的所有成功请求总的响应时间/滑动窗口的所有成功的请求数。
-     *          如果平均响应时间小于阀值，则放行。
-     *          如果平均响应时间大于阀值，则如果判断已放行的超过阀值的请求数是否小于5，如果是的话，则继续放行，否则打开开关熔断
+     *      a、DEGRADE_GRADE_RT：根据响应时间RT进行熔断：
+     *          根据采样时间，计算采样时间段内的平均rt=采样时间段内（包含两个滑动窗口）所有成功请求总的响应时间/采样时间段内（包含两个滑动窗口）的所有成功的请求数。
+     *          如果平均响应时间小于阈值，则放行。
+     *          如果平均响应时间大于阈值，则如果判断已放行的超过阈值的请求数是否小于5，如果是的话，则继续放行，否则打开开关熔断
+     *          注意：这里只统计业务处理请求成功的。
      *      b、DEGRADE_GRADE_EXCEPTION_RATIO：根据异常比熔断：注意，这里的异常是业务异常
-     *          根据滑动窗口，获得当前的异常数和成功请求数。注意，这里成功的请求数里包括抛出业务异常的请求。
-     *          计算 exception/success，如果小于阀值，则放行。
-     *          如果比例大于阀值，则打开开关熔断
+     *          根据采样时间，，获得当前的异常数和成功请求数。注意，这里成功的请求数里只包括抛出业务异常的请求。
+     *          计算 exception/success，如果小于阈值，则放行。
+     *          如果比例大于阈值，则打开开关熔断
      *
-     *      c、DEGRADE_GRADE_EXCEPTION_COUNT：直接根据异常数熔断，直接判断异常数是否超过阀值，如果是，则打开熔断开关
+     *      c、DEGRADE_GRADE_EXCEPTION_COUNT：直接根据异常数熔断，直接判断异常数是否超过阈值，如果是，则打开熔断开关
      *
      *
      */
     @Override
     public boolean passCheck(Context context, DefaultNode node, int acquireCount, Object... args) {
-        if (cut.get()) {//如果熔断开关打开的话，则直接不放行
+        if (cut.get()) {//如果熔断开关打开的话，则直接拒绝
             return false;
         }
-
+        //获得当前资源的统计信息ClusterNode
         ClusterNode clusterNode = ClusterBuilderSlot.getClusterNode(this.getResource());
         if (clusterNode == null) {
             return true;
         }
-        //如果是根据RT
+        //如果是根据响应设计RT
         if (grade == RuleConstant.DEGRADE_GRADE_RT) {
-            double rt = clusterNode.avgRt();//获得平均一个请求的响应时间
-            if (rt < this.count) {//如果平均响应时间<阀值，则成功放行
+            //这里面会剔除过期的滑动窗口，也就是那些开始时间距离当前时间点超过整个滑动窗口数组的采样时间intervalInMs的滑动窗口会被排除
+            double rt = clusterNode.avgRt();//获得采样时间段内的平均响应时间
+            if (rt < this.count) {//如果平均响应时间<阈值，则成功放行
                 passCount.set(0);
                 return true;
             }
-            //走到这边说明平均的响应时间超过阀值了，则通过的请求数是否达到统计的数量
+            //走到这边说明平均的响应时间超过阈值了，则通过的请求数是否达到统计的数量(统计请求数要有个阈值，不然很可能因为网络抖动误杀)
             // Sentinel will degrade the service only if count exceeds.
             if (passCount.incrementAndGet() < RT_MAX_EXCEED_N) {
                 return true;
             }
         } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_RATIO) {//如果根据错误比
-            double exception = clusterNode.exceptionQps();//前一秒的每秒异常数(业务异常) 1
+            double exception = clusterNode.exceptionQps();//当前采样时间内的两个滑动窗口的异常的qps
             // 2、success=2
             double success = clusterNode.successQps();//前一秒的每秒成功数（包括拿到token但是抛出业务异常的请求） 2
             //3、total=5
             double total = clusterNode.totalQps();//前一秒总的请求数 5
             // if total qps less than RT_MAX_EXCEED_N, pass.（包括：获得token但是业务失败+获得token且业务成功+没获得token）
-            if (total < RT_MAX_EXCEED_N) {//如果总的查询还未超过默认的阀值，则直接反省
+            if (total < RT_MAX_EXCEED_N) {//如果总的查询还未超过默认的阈值，则直接反省
                 return true;
             }
             //计算真正的成功请求数，也就是 获得token且业务成功=获得token成功数-异常数
@@ -222,12 +226,12 @@ public class DegradeRule extends AbstractRule {
                     ) {
                 return true;
             }
-            //如果失败数/成功数<count，也就是小于阀值，则放行，不然打开熔断开关
+            //如果失败数/成功数<count，也就是小于阈值，则放行，不然打开熔断开关
             if (exception / success < count) {//1/2=50%
                 return true;
             }
         } else if (grade == RuleConstant.DEGRADE_GRADE_EXCEPTION_COUNT) {//如果根据异常数
-            double exception = clusterNode.totalException();//直接判断异常数是否超过阀值
+            double exception = clusterNode.totalException();//直接判断异常数是否超过阈值
             if (exception < count) {
                 return true;
             }

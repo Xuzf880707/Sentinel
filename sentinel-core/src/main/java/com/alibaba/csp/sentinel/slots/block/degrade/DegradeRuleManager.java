@@ -58,6 +58,7 @@ public final class DegradeRuleManager {
      * of {@link DegradeRule}s. Degrade rules can also be set by {@link #loadRules(List)} directly.
      *
      * @param property the property to listen.
+     *  为property绑定一个监听器LISTENER，这样在规则变更的时候，可以利用LISTENER实时更新内存中的规则
      */
     public static void register2Property(SentinelProperty<List<DegradeRule>> property) {
         AssertUtil.notNull(property, "property cannot be null");
@@ -69,6 +70,18 @@ public final class DegradeRuleManager {
         }
     }
     //熔断降级检查
+
+    /***
+     *
+     * @param resource
+     * @param context
+     * @param node
+     * @param count
+     * @throws BlockException
+     * 1、根据资源名称获得熔断规则
+     * 2、遍历熔断规则进行熔断检查，任何一个没过，则直接退出
+     *
+     */
     public static void checkDegrade(ResourceWrapper resource, Context context, DefaultNode node, int count)
         throws BlockException {
         //根据资源名称获得配置的熔断规则
