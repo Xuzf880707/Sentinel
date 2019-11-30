@@ -177,6 +177,19 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
         }
     }
 
+    /***
+     * 同上面一样，如果资源释放后，则要更新相应的统计信息
+     * @param context         current {@link Context}
+     * @param resourceWrapper current resource
+     * @param count           tokens needed
+     * @param args
+     *
+     * 1、如果没有返回error，则表示资源请求并成功释放：
+     *      记录本次请求的相应时间，最大不能超过4900毫秒，超过按4900计算。
+     *      defaultNode：记录当前时间窗口内所有请求的总响应时间和业务逻辑处理成功请求数(包含秒级的metric和分钟级的metric)、持有的资源的线程数减1
+     *      orginNode(如果有指定调用者的话)：从调用者的粒度记录当前时间窗口内所有请求的总响应时间和业务逻辑处理成功请求数(包含秒级的metric和分钟级的metric)、持有的资源的线程数减1
+     *      ENTRY_NODE(这是一个对全局所有的资源信息的输入的统计节点)：从整个系统的角度，记录当前时间窗口内所有请求的总响应时间和业务逻辑处理成功请求数(包含秒级的metric和分钟级的metric)、持有的资源的线程数减1
+     */
     @Override
     public void exit(Context context, ResourceWrapper resourceWrapper, int count, Object... args) {
         DefaultNode node = (DefaultNode)context.getCurNode();
@@ -189,9 +202,11 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
                 rt = Constants.TIME_DROP_VALVE;
             }
 
-            // Record response time and success count.
+            //记录当前时间窗口内所有请求的总响应时间和业务逻辑处理成功请求数(包含秒级的metric和分钟级的metric)
             node.addRtAndSuccess(rt, count);//统计rt和 执行成功的次数（分钟级和秒级）
+            //从调用者的粒度记录当前时间窗口内所有请求的总响应时间和业务逻辑处理成功的请求数(包含秒级的metric和分钟级的metric)
             if (context.getCurEntry().getOriginNode() != null) {
+
                 context.getCurEntry().getOriginNode().addRtAndSuccess(rt, count);
             }
 
