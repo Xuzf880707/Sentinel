@@ -35,6 +35,10 @@ import com.alibaba.csp.sentinel.slotchain.ProcessorSlotExitCallback;
  * @author Eric Zhao
  * @since 0.2.0
  */
+
+/***
+ * 可以通过 StatisticSlotCallbackRegistry 注册一些对调用信息成功或阻塞后的回调的方法
+ */
 public final class StatisticSlotCallbackRegistry {
 
     private static final Map<String, ProcessorSlotEntryCallback<DefaultNode>> entryCallbackMap

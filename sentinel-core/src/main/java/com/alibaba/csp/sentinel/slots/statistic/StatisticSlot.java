@@ -51,9 +51,46 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
  *      origin：根据来自不同调用者的统计信息
  *      defaultnode: 根据上下文条目名称和资源 ID 的 runtime 统计
  * Sentinel 底层采用高性能的滑动窗口数据结构 LeapArray 来统计实时的秒级指标数据，可以很好地支撑写多于读的高并发场景。
+ *
+ * StatisticSlot主要是根据 ProcessorSlotChain 的过滤结果进行统计信息。它主要是触发DefaultNode、的统计功能：
+ *      pass：如果通过ProcessorSlotChain过滤，并成功获得信号量，则记录并统计响应的信息，这些信息包括：
+ *          DefaultNode.ThreadNum(线程数+1)、DefaultNode.pass(请求通过数+count)、OriginNode.ThreadNum(线程数+1)、OriginNode.pass(请求通过数+count)
+ *
+ *
  */
 public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
-
+    /***
+     *
+     * @param context         current {@link Context}
+     * @param resourceWrapper current resource
+     * @param node
+     * @param count           tokens needed
+     * @param prioritized     whether the entry is prioritized
+     * @param args            parameters of the original call
+     * @throws Throwable
+     * 1、打标记并放行
+     * 2、根据资源请求状态开始记录统计信息
+     *      pass：如果通过ProcessorSlotChain过滤，并成功获得信号量，则记录并统计响应的信息，这些信息包括：
+     *          DefaultNode：ThreadNum(线程数+1)、pass(请求通过数+count)、
+     *          OriginNode(如果有指定调用者的话)：ThreadNum(线程数+1)、pass(请求通过数+count)
+     *          ENTRY_NODE(这是一个对全局所有的资源信息的输入的统计节点)：ThreadNum(线程数+1)、pass(请求通过数+count)
+     *          判断是否是用了 StatisticSlotCallbackRegistry 注册了请求资源成功的回调函数了没，有的话执行回调函数。
+     *      blockException：如果被限流或者降级，则记录并统计阻塞或限流的统计信息，这些信息包括：
+     *          DefaultNode：blockQps(阻塞数+1)
+     *          OriginNode(如果有指定调用者的话)：blockQps(阻塞数+1)
+     *          ENTRY_NODE(这是一个对全局所有的资源信息的输入的统计节点)：blockQps(阻塞数+1)
+     *          判断是否是用了 StatisticSlotCallbackRegistry 注册了请求资源阻塞的回调函数了没，有的话执行回调函数。
+     *      PriorityWaitException：如果因为优先级排队异常，则记录并统计当前的统计信息：
+     *          DefaultNode：blockQps(线程数+1)
+     *          OriginNode(如果有指定调用者的话)：blockQps(线程数+1)
+     *          ENTRY_NODE(这是一个对全局所有的资源信息的输入的统计节点)：threadNum(线程数+1)
+     *          判断是否是用了 StatisticSlotCallbackRegistry 注册了请求资源阻塞的回调函数了没，有的话执行回调函数。
+     *      其它异常：记录并统计异常的统计信息：
+     *          DefaultNode：blockQps(异常数+1)
+     *          OriginNode(如果有指定调用者的话)：exceptiionQps(异常数+1)
+     *          ENTRY_NODE(这是一个对全局所有的资源信息的输入的统计节点)：blockQps(异常数+1)
+     *
+     */
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, DefaultNode node, int count,
                       boolean prioritized, Object... args) throws Throwable {
@@ -65,12 +102,12 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             //增加访问资源的并发线程数
             node.increaseThreadNum();//线程数+1
             // 再增加当前秒钟pass的请求数
-            node.addPassRequest(count);//通过的请求数+1
+            node.addPassRequest(count);//通过的请求数+count
             // 如果在调用entry之前指定了调用的origin，即调用方
             if (context.getCurEntry().getOriginNode() != null) {
                 // 则会有一个originNode，我们也需要做上面两个增加操作
                 context.getCurEntry().getOriginNode().increaseThreadNum();//访问orgin的线程数+1
-                context.getCurEntry().getOriginNode().addPassRequest(count);//访问orgin的通过的请求数+1
+                context.getCurEntry().getOriginNode().addPassRequest(count);//访问orgin的通过的请求数+count
             }
 
             if (resourceWrapper.getType() == EntryType.IN) {
@@ -80,6 +117,7 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             }
 
             // Handle pass event with registered entry callback handlers.
+            //
             for (ProcessorSlotEntryCallback<DefaultNode> handler : StatisticSlotCallbackRegistry.getEntryCallbacks()) {
                 handler.onPass(context, resourceWrapper, node, count, args);
             }
