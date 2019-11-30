@@ -54,7 +54,13 @@ public class ArrayMetric implements Metric {
     public ArrayMetric(LeapArray<MetricBucket> array) {
         this.data = array;
     }
-
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值并记录下单个窗口最大的成功数
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long success() {
         data.currentWindow();
@@ -66,7 +72,13 @@ public class ArrayMetric implements Metric {
         }
         return success;
     }
-
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long maxSuccess() {
         data.currentWindow();
@@ -80,7 +92,13 @@ public class ArrayMetric implements Metric {
         }
         return Math.max(success, 1);
     }
-
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long exception() {
         data.currentWindow();
@@ -92,6 +110,13 @@ public class ArrayMetric implements Metric {
         return exception;
     }
 
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long block() {
         data.currentWindow();
@@ -104,7 +129,8 @@ public class ArrayMetric implements Metric {
     }
 
     /***
-     * 1、获得当前时间
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
      * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
      *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
      * @return
@@ -112,6 +138,7 @@ public class ArrayMetric implements Metric {
     @Override
     public long pass() {
         //TODO ?这一步只是为了重置更新当前时间对应的窗口，然后避免拿到旧的值吗？但是data.values()已经做了同样的功能了啊？
+        //所以这一步真正目的是否是为了更新当前对应的时间窗口？
         data.currentWindow();
         long pass = 0;
         List<MetricBucket> list = data.values();
@@ -121,7 +148,13 @@ public class ArrayMetric implements Metric {
         }
         return pass;
     }
-
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long occupiedPass() {
         data.currentWindow();
@@ -132,7 +165,13 @@ public class ArrayMetric implements Metric {
         }
         return pass;
     }
-
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的值的累计
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long rt() {
         data.currentWindow();
@@ -143,7 +182,13 @@ public class ArrayMetric implements Metric {
         }
         return rt;
     }
-
+    /***
+     * 1、更新滑动窗口的最新信息，这里会根据当前时间，丢弃秒级metric中过期的时间窗口
+     *          (通过当前时间计算在窗口数组中所处的索引，然后检查索引对应的窗口，判断当前时间是否在该窗口时间区间，如果不是则表示旧的窗口，直接丢弃该窗口，并维护一个新的时间窗口)
+     * 2、根据当前获得当前整个滑动窗口数组中的所有的窗口的平均响应时间最小的窗口，并获得最小的响应时间
+     *      这里会丢弃掉其中和当前时间跨度超过一整个时间窗口数组的跨度的旧的窗口
+     * @return
+     */
     @Override
     public long minRt() {
         data.currentWindow();
@@ -240,10 +285,23 @@ public class ArrayMetric implements Metric {
         data.debug(System.currentTimeMillis());
     }
 
+    /***
+     * 获得前一个时间窗口的统计信息
+     *      1、如果当前时间对应的前一个时间窗口已经不存在，则返回0
+     *      2、获得前一个时间窗口的阻塞数
+     *      注意：
+     *          默认的对于分钟级的metric，每个窗口跨度是1s。
+     *          默认的对于秒级的metric，每个窗口跨度是500ms
+     * @return
+     */
     @Override
     public long previousWindowBlock() {
         WindowWrap<MetricBucket> wrap = data.currentWindow();
+        //根据当前时间获得前一个窗口的统计信息
+        //  默认的对于分钟级的metric，每个窗口跨度是1s。
+        //  默认的对于秒级的metric，每个窗口跨度是500ms
         wrap = data.getPreviousWindow();
+        //如果前一个时间窗口不存在，则返回0
         if (wrap == null) {
             return 0;
         }
@@ -253,6 +311,9 @@ public class ArrayMetric implements Metric {
     @Override
     public long previousWindowPass() {
         WindowWrap<MetricBucket> wrap = data.currentWindow();
+        //根据当前时间获得前一个窗口的统计信息
+        //  默认的对于分钟级的metric，每个窗口跨度是1s。
+        //  默认的对于秒级的metric，每个窗口跨度是500ms
         wrap = data.getPreviousWindow();
         if (wrap == null) {
             return 0;

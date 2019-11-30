@@ -75,6 +75,10 @@ public class DefaultNode extends StatisticNode {
         return clusterNode;
     }
 
+    /***
+     * 绑定对相应资源的总的统计信息
+     * @param clusterNode
+     */
     public void setClusterNode(ClusterNode clusterNode) {
         this.clusterNode = clusterNode;
     }
@@ -113,30 +117,58 @@ public class DefaultNode extends StatisticNode {
         return childList;
     }
 
+    /***
+     *
+     * @param count
+     * 1、添加当前DefaultNode节点Block Qps统计信息
+     * 2、增加集群节点的Block Qps统计信息
+     */
     @Override
     public void increaseBlockQps(int count) {
         super.increaseBlockQps(count);
         this.clusterNode.increaseBlockQps(count);
     }
 
+    /***
+     *
+     * @param count
+     * 1、添加当前DefaultNode节点 Exception Qps统计信息
+     * 2、增加集群节点的 Exception Qps统计信息
+     */
     @Override
     public void increaseExceptionQps(int count) {
         super.increaseExceptionQps(count);
         this.clusterNode.increaseExceptionQps(count);
     }
 
+    /***
+     *
+     * @param rt
+     * @param successCount
+     * 1、添加当前DefaultNode节点'响应时间rt和成功调用数successCount'的统计信息
+     * 2、增加集群节点的'响应时间rt和成功调用数successCount'统计信息
+     */
     @Override
     public void addRtAndSuccess(long rt, int successCount) {
         super.addRtAndSuccess(rt, successCount);
         this.clusterNode.addRtAndSuccess(rt, successCount);
     }
 
+    /***
+     *
+     * 1、增加当前DefaultNode节点'调用线程'的统计信息
+     * 2、增加集群节点的'调用线程'的统计信息
+     */
     @Override
     public void increaseThreadNum() {
         super.increaseThreadNum();
         this.clusterNode.increaseThreadNum();
     }
-
+    /***
+     *
+     * 1、减少当前DefaultNode节点'调用线程'的统计信息
+     * 2、减少集群节点的'调用线程'的统计信息
+     */
     @Override
     public void decreaseThreadNum() {
         super.decreaseThreadNum();
@@ -146,7 +178,8 @@ public class DefaultNode extends StatisticNode {
     /***
      * DefaultNode：保存着某个resource在某个context中的实时指标，每个DefaultNode都指向一个ClusterNode
      * ClusterNode：保存着某个resource在所有的context中实时指标的总和，同样的resource会共享同一个ClusterNode，不管他在哪个context中
-     * @param count
+     * 1、增加当前DefaultNode节点'请求通过'的统计信息
+     * 2、增加集群节点的'请求通过'的统计信息
      */
     @Override
     public void addPassRequest(int count) {
@@ -158,6 +191,11 @@ public class DefaultNode extends StatisticNode {
         visitTree(0, this);
     }
 
+    /**
+     * 遍历调用链路🌲
+     * @param level
+     * @param node
+     */
     private void visitTree(int level, DefaultNode node) {
         for (int i = 0; i < level; ++i) {
             System.out.print("-");

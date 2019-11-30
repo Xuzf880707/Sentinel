@@ -228,7 +228,7 @@ public abstract class LeapArray<T> {
      * 获得某一个时间点的前一个窗口
      * 1、判断时间参数的合法性
      * 2、根据提供的时间参数向前推一个时间窗口，并计算窗口对应的idx
-     * 3、判断索引对应采样窗口是否就是目标窗口，因为有可能旧的窗口早就被替代调了
+     * 3、判断索引对应采样窗口是否就是目标窗口，因为有可能旧的窗口早就被替代掉了
      * @param timeMillis
      * @return
      */
@@ -257,6 +257,7 @@ public abstract class LeapArray<T> {
      * Get the previous bucket item for current timestamp.
      *
      * @return the previous bucket item for current timestamp
+     * 根据当前时间获得前一个滑动窗口的调用信息
      */
     public WindowWrap<T> getPreviousWindow() {
         return getPreviousWindow(TimeUtil.currentTimeMillis());
@@ -299,7 +300,11 @@ public abstract class LeapArray<T> {
     public boolean isWindowDeprecated(/*@NonNull*/ WindowWrap<T> windowWrap) {
         return isWindowDeprecated(TimeUtil.currentTimeMillis(), windowWrap);
     }
-
+    /***
+     * 如果某个窗口的开始时间+intervalInMs（整个窗口数组的时间跨度）<当前时间，那么这个目标窗口肯定是已经被丢弃了
+     * @param windowWrap
+     * @return
+     */
     public boolean isWindowDeprecated(long time, WindowWrap<T> windowWrap) {
         return time - windowWrap.windowStart() > intervalInMs;
     }
@@ -362,7 +367,7 @@ public abstract class LeapArray<T> {
     /***
      * 根据提供的时间，获得整个滑动窗口数组中所有窗口的值的总和
      *      1、遍历时间窗口数组
-     *      2、如果当前窗口为空，或者当前窗口的开始时间和提供的时间差距超过一个采样窗口数组的时间跨度，则表示太老了，废弃掉
+     *      2、如果当前窗口为空，或者当前窗口的开始时间和提供的时间差距超过一个采样窗口数组的总时间跨度，则表示太老了，废弃掉
      * 所以这里在统计的时候，会丢弃掉开始时间跟当前时间跨度超过1整个数组窗口的时间跨度的窗口
      * @param timeMillis
      * @return
