@@ -51,8 +51,9 @@ public class ClusterNode extends StatisticNode {
      * So we didn't use concurrent map here, but a lock, as this lock only happens
      * at the very beginning while concurrent map will hold the lock all the time.
      * </p>
-     * key：调用者orign名称
-     * value：调用者orign对应的StatisticNode
+     * 当前资源节点下来源于各个调用者的统计信息，所以通过资源名称+orgin确定唯一的StatisticNode
+     *      key：调用者orign名称
+     *      value：调用者orign对应的StatisticNode
      */
     private Map<String, StatisticNode> originCountMap = new HashMap<String, StatisticNode>();
 
@@ -70,6 +71,7 @@ public class ClusterNode extends StatisticNode {
      * 则用于存储资源的统计信息以及调用者信息，例如该资源的 RT, QPS, thread count 等等，这些信息将用作为多维度限流，降级的依据；
      */
     public Node getOrCreateOriginNode(String origin) {
+        //如果clusterNode中未包含orign对应的statisticNode，则新建一个，并绑定到 clusterNode里
         StatisticNode statisticNode = originCountMap.get(origin);
         if (statisticNode == null) {
             try {

@@ -121,62 +121,84 @@ import com.alibaba.csp.sentinel.slotchain.ResourceWrapper;
  * @author jialiang.linjl
  * @see EntranceNode
  * @see ContextUtil
- * 负责收集资源的路径，并将这些资源的调用路径，以树状结构存储起来，用于根据调用路径来限流降级
+ *      NodeSelectorSlot 负责收集资源的路径，并将这些资源的调用路径，以树状结构存储起来，用于根据调用路径来限流降级。
+ *      每个context下的每个resourceWrapper都有一个独立的 DefaultNode。而这个DefaultNode下又都持有针对所有context下的同一个resourceWrapper的总的统计信息
  */
 public class NodeSelectorSlot extends AbstractLinkedProcessorSlot<Object> {
-
-    /**
-     * {@link DefaultNode}s of the same resource in different context.
-     * key：context上下文名称。
-     *      由于不同context中同名的资源名称会共享相同的规则链，所以在不同的context里可以尝试获得相同的资源。
-     *      因此这里使用context作为key，这样就可以在不同的上下文里区分同一个资源。
-     *      既然这样，同一个资源名称可能会为每一个context创建多个DefaultNode
+    /***
+     *{@link DefaultNode}s of the same resource in different context.
+     *
+     * key：context.name 也就是上下文名称
+     * value：是在当前context下，请求的资源对象所代表的DefaultNode，比如 nodeA
+     *      注意：我们知道每个资源resourceWrapper都会创建自己的ProcessorSlotChain，每个ProcessorSlotChain 中的NodeSelectorSlot都是独立并不共享
+     *          所以不同的 resourceWrapper 是不同的 map；
+     *          不同context中相同的resourceWrapper会共享这个map，但是他们的key是不一样的。也就是说，对于同一个资源，会为每一个context都创建一个DefaultNode
+     * 这边为什么要用context作为key？
+     *      a、这样就可以在不同的上下文里区分同名的资源。
+     *      b、而且因为即使是不同的context，只要资源名称相同，那么就会共享同一条规则链 ProcessorSlotChain。但是在某些场景下，我们想统计某个资源在某条调用链路下的统计信息。
+     *          通过context作为key，我们就可以在不同的context中获得这一个共享的资源的当前调用链的调用情况。
      *
      */
     private volatile Map<String, DefaultNode> /**/map = new HashMap<String, DefaultNode>(10);
-    //负责收集资源的路径，并将这些资源的调用路径，以树状结构存储起来，用于根据调用路径来限流降级；
+    /***
+     * 负责收集资源的路径，并将这些资源的调用路径，以树状结构存储起来，用于根据调用路径来限流降级；
+     *      注意：每个DefaultNode都持有一个ClusterNode，这个ClusterNode节点是用来统计资源 resource总的统计信息(不区分调用链路)。所以通过DefaultNode可以很快的拿到对应的资源的总的统计信息。
+     * @param context         current {@link Context}
+     * @param resourceWrapper current resource
+     * @param obj
+     * @param count           tokens needed
+     * @param prioritized     whether the entry is prioritized
+     * @param args            parameters of the original call
+     * @throws Throwable
+     * 1、先检查下当前资源调用链维护的NodeSelectorSlot下是否存在对应context的调用链节点 DefaultNode 。
+     * 2、如果没有的话，则根据资源对象 resourceWrapper 新建一个，并根据context-DefaultNode方式放到 NodeSelectorSlot下的对象变量map中。
+     */
     @Override
     public void entry(Context context, ResourceWrapper resourceWrapper, Object obj, int count, boolean prioritized, Object... args)
         throws Throwable {
-        /* 有趣的是，我们采用context的名称而不是资源的名称来作为map的key
+        /*
          * It's interesting that we use context name rather resource name as the map key.
-         * 不同的上下文里相同名称的资源会共享相同的过滤链。所以如果代码进入entry方法里，那么资源名称肯定相同，
-         * 但是context不一定相同
          * Remember that same resource({@link ResourceWrapper#equals(Object)}) will share
          * the same {@link ProcessorSlotChain} globally, no matter in which context. So if
          * code goes into {@link #entry(Context, ResourceWrapper, DefaultNode, int, Object...)},
          * the resource name must be same but context name may not.
-         *  如果我们在不同的context使用entry(String resource)尝试获取相同的资源名称，如果使用context作为key的话可以
-         *  区分出同名的资源名称。因此，可能为不同的context基于相同名称的资源建立多个DefaultNode
+         *
          * If we use {@link com.alibaba.csp.sentinel.SphU#entry(String resource)} to
          * enter same resource in different context, using context name as map key can
          * distinguish the same resource. In this case, multiple {@link DefaultNode}s will be created
          * of the same resource name, for every distinct context (different context name) each.
-         *  另一问题，一个资源可能会存在多个DefaultNode。所以怎么更快的获得同一个资源的统计信息呢？
-         *  答案是所有具有相同的资源名称的DefaultNode共享一个ClusterNode
          * Consider another question. One resource may have multiple {@link DefaultNode},
          * so what is the fastest way to get total statistics of the same resource?
          * The answer is all {@link DefaultNode}s with same resource name share one
          * {@link ClusterNode}. See {@link ClusterBuilderSlot} for detail.
-         * 相同的资源共享同一个规则链，无论是在哪个context里
          */
         //根据context名称获得对应的DefaultNode
-        // 根据「上下文」的名称获取DefaultNode
-        // 多线程环境下，每个线程都会创建一个context，
-        // 只要资源名相同(意味着同一个NodeSelectorSlot对象，因为map是对象变量)，且context的名称也相同，那么获取到的节点就相同
         DefaultNode node = map.get(context.getName());
         if (node == null) {//还未初始化context对应的DefaultNode
             synchronized (this) {
                 node = map.get(context.getName());
                 if (node == null) {// 如果当前资源在当前「上下文」中没有该节点
-                    //根据资源名称为context创建一个DefaultNode
+                    //根据资源名称为context创建一个 DefaultNode，注意，新建的DefaultNode暂时还没有绑定资源对应的clusterNode上
                     node = new DefaultNode(resourceWrapper, null);
                     HashMap<String, DefaultNode> cacheMap = new HashMap<String, DefaultNode>(map.size());
                     cacheMap.putAll(map);
                     cacheMap.put(context.getName(), node);
                     map = cacheMap;
                 }
-                // Build invocation tree 将新节点加入到parent节点的childList里
+                /**
+                 * <pre>
+                 *
+                 *              machine-root
+                                        *                  /
+                 *                 /
+                 *           EntranceNode1
+                                        *               /
+                 *              /
+                 *        DefaultNode(nodeA)- - - - - -> ClusterNode(nodeA);
+                 * </pre>
+                 *
+                 * */
+                // Build invocation tree 将新节点加入到parent节点的childList里，查看上面的调用链，这个时候是把DefaultNode(nodeA)添加到🌲里
                 ((DefaultNode)context.getLastNode()).addChild(node);
             }
         }
@@ -184,6 +206,7 @@ public class NodeSelectorSlot extends AbstractLinkedProcessorSlot<Object> {
         // 如果context的curEntry.parent.curNode为null，则添加到entranceNode中去
         // 否则添加到context的curEntry.parent.curNode中去
         context.setCurNode(node);//将curEntry绑定defaultNode
+        //这边会触发 ClusterBuilderSlot 执行
         fireEntry(context, resourceWrapper, node, count, prioritized, args);
     }
 
