@@ -43,8 +43,17 @@ public class DefaultEmbeddedTokenServer implements EmbeddedClusterTokenServer {
         server.stop();
     }
 
+    /***
+     * 如果token client本身也是token server，通过该服务请求token
+     * @param ruleId the unique rule ID
+     * @param acquireCount token count to acquire
+     * @param prioritized whether the request is prioritized
+     * @return
+     * 这里tokenService请求token，实为弱化为本地获取token
+     */
     @Override
     public TokenResult requestToken(Long ruleId, int acquireCount, boolean prioritized) {
+        //调用DefaultTokenService请求token
         if (tokenService != null) {
             return tokenService.requestToken(ruleId, acquireCount, prioritized);
         }

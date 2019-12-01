@@ -57,6 +57,7 @@ import io.netty.util.concurrent.GenericFutureListener;
  *
  * @author Eric Zhao
  * @since 1.4.0
+ * 维护一个netty客户端
  */
 public class NettyTransportClient implements ClusterTransportClient {
 

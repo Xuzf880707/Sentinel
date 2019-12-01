@@ -32,7 +32,15 @@ import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowRule;
  * @since 1.4.0
  */
 public class DefaultTokenService implements TokenService {
-
+    /***
+     *
+     * @param ruleId the unique rule ID
+     * @param acquireCount token count to acquire
+     * @param prioritized whether the request is prioritized
+     * @return
+     * 1、根据ruleid 查找对应的FlowRule
+     * 2、使用FlowRule进行限流校验
+     */
     @Override
     public TokenResult requestToken(Long ruleId, int acquireCount, boolean prioritized) {
         if (notValidRequest(ruleId, acquireCount)) {
@@ -43,7 +51,7 @@ public class DefaultTokenService implements TokenService {
         if (rule == null) {
             return new TokenResult(TokenResultStatus.NO_RULE_EXISTS);
         }
-
+        //根据
         return ClusterFlowChecker.acquireClusterToken(rule, acquireCount, prioritized);
     }
 

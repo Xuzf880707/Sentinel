@@ -44,13 +44,14 @@ public class FlowRuleChecker {
      * 流量检查
      * @param ruleProvider  用于根据resource获得 Map<String, List<FlowRule>> flowRules
      * @param resource 资源名称
-     * @param context
-     * @param node
+     * @param context 上下文
+     * @param node defaultNode
      * @param count
      * @param prioritized
      * @throws BlockException
-     * 1、根据资源名称从FlowRuleManager.flowRules集合中获取资源对应的限流规则列表
-     * 2、遍历资源列表，一个个检查，只要任何一个规则不符合，则拒绝
+     * 1、判断限流规则的提供者不能为空，且资源也不能为空
+     * 2、根据资源名称从FlowRuleManager.flowRules集合中获取资源对应的限流规则列表
+     * 3、遍历资源列表，一个个检查，只要任何一个规则不符合，则拒绝
      */
     public void checkFlow(Function<String, Collection<FlowRule>> ruleProvider, ResourceWrapper resource,
                           Context context, DefaultNode node, int count, boolean prioritized) throws BlockException {
@@ -74,11 +75,11 @@ public class FlowRuleChecker {
 
     /***
      * 根据限流规则，判断是否放行
-     * @param rule
-     * @param context
-     * @param node
-     * @param acquireCount
-     * @param prioritized
+     * @param rule 限流规则
+     * @param context 上下文信息
+     * @param node defaultNode
+     * @param acquireCount 请求获取的资源个数
+     * @param prioritized 默认false
      * @return
      * 1、检查规则的limitApp，不能为空
      * 2、根据集群或本地模式进行规则检查
@@ -89,7 +90,7 @@ public class FlowRuleChecker {
         if (limitApp == null) {
             return true;
         }
-        //判断是否是集群模式
+        //标识是否为集群限流配置
         if (rule.isClusterMode()) {
             return passClusterCheck(rule, context, node, acquireCount, prioritized);
         }
@@ -198,16 +199,26 @@ public class FlowRuleChecker {
      * @param acquireCount
      * @param prioritized
      * @return
+     * 1、获得当前节点所持有的 TokenService ，TokenService是规则判断的具体实现。
+     *      作为内置的 token server 与服务在同一进程中启动，则返回 DefaultEmbeddedTokenServer
+     *      如果本token client节点不是token server,则返回 DefaultClusterTokenClient
+     * 2、根据 flowId 和 acquireCount向 token服务端发起请求资源
+     * 3、处理请求响应的结果
      */
     private static boolean passClusterCheck(FlowRule rule, Context context, DefaultNode node, int acquireCount,
                                             boolean prioritized) {
         try {
+            //请求获得 TokenService（DefaultClusterTokenClient或DefaultEmbeddedTokenServer）
             TokenService clusterService = pickClusterService();
+            //如果没有配置集群配置，则蜕化为本地模式
             if (clusterService == null) {
                 return fallbackToLocalOrPass(rule, context, node, acquireCount, prioritized);
             }
+            //（必需）全局唯一的规则 ID，由集群限流管控端分配.
             long flowId = rule.getClusterConfig().getFlowId();
+            //根据 flowId 和 acquireCount向 token服务端发起请求资源
             TokenResult result = clusterService.requestToken(flowId, acquireCount, prioritized);
+            //对请求资源进行处理
             return applyTokenResult(result, rule, context, node, acquireCount, prioritized);
             // If client is absent, then fallback to local mode.
         } catch (Throwable ex) {
@@ -229,20 +240,44 @@ public class FlowRuleChecker {
         }
     }
 
+    /***
+     * 获得当前接待你所持有的 TokenService
+     *    如果本token client节点同时也是token server,则返回 DefaultEmbeddedTokenServer
+     *    如果本token client节点不是token server,则返回 DefaultClusterTokenClient
+     *    Token Client：集群流控客户端，用于向所属 Token Server 通信请求 token。集群限流服务端会返回给客户端结果，决定是否限流。
+     *    Token Server：即集群流控服务端，处理来自 Token Client 的请求，根据配置的集群规则判断是否应该发放 token（是否允许通过）。
+     * @return
+     */
     private static TokenService pickClusterService() {
+        //如果当前节点是客户端模式，则返回 DefaultClusterTokenClient
         if (ClusterStateManager.isClient()) {
             return TokenClientProvider.getClient();
         }
+        //如果当前节点是服务端模式，则返回 DefaultEmbeddedTokenServer
         if (ClusterStateManager.isServer()) {
             return EmbeddedClusterTokenServerProvider.getServer();
         }
         return null;
     }
 
+    /****
+     *  除了请求响应ok以及请求阻塞之外，其它情况下都会降级为本地模式
+     * @param result 向token server发起请求token后的响应结果
+     * @param rule 限流规则
+     * @param context 上下文
+     * @param node DefaultNode
+     * @param acquireCount 请求的资源数
+     * @param prioritized
+     * @return
+     * 1、如果请求响应ok或者SHOULD_WAIT，则返回获得资源成功。
+     * 2、如果请求响应返回blocked，则返回获取资源失败。
+     * 3、其它情况下，弱化为本地模式
+     */
     private static boolean applyTokenResult(/*@NonNull*/ TokenResult result, FlowRule rule, Context context,
                                                          DefaultNode node,
                                                          int acquireCount, boolean prioritized) {
         switch (result.getStatus()) {
+            //如果请求响应ok或者SHOULD_WAIT，则返回获得资源成功。
             case TokenResultStatus.OK:
                 return true;
             case TokenResultStatus.SHOULD_WAIT:
@@ -257,7 +292,9 @@ public class FlowRuleChecker {
             case TokenResultStatus.BAD_REQUEST:
             case TokenResultStatus.FAIL:
             case TokenResultStatus.TOO_MANY_REQUEST:
+                //弱化为本地模式
                 return fallbackToLocalOrPass(rule, context, node, acquireCount, prioritized);
+            //如果请求响应返回blocked，则返回获取资源失败。
             case TokenResultStatus.BLOCKED:
             default:
                 return false;
