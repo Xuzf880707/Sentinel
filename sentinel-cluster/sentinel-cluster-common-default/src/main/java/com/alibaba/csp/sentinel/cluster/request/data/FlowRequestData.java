@@ -18,10 +18,16 @@ package com.alibaba.csp.sentinel.cluster.request.data;
 /**
  * @author Eric Zhao
  * @since 1.4.0
+ * 集群限流规则下请求资源的包装对象
  */
 public class FlowRequestData {
-
+    /***
+     * 全局的限流id
+     */
     private long flowId;
+    /**
+     * 请求资源数
+     */
     private int count;
     private boolean priority;
 

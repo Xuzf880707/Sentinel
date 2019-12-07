@@ -1,6 +1,7 @@
 package com.alibaba.csp.sentinel.slots.block.flow.controller;
 
 import com.alibaba.csp.sentinel.node.Node;
+import com.alibaba.csp.sentinel.node.StatisticNode;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.flow.TrafficShapingController;
 
@@ -18,11 +19,11 @@ public class DefaultControllerTest {
     public void testCanPassForQps() {
         double threshold = 10;
         TrafficShapingController controller = new DefaultController(threshold, RuleConstant.FLOW_GRADE_QPS);
-        Node node = mock(Node.class);
-        when(node.passQps()).thenReturn(threshold - 1)
-            .thenReturn(threshold);
+        Node node = new StatisticNode();
+//        when(node.passQps()).thenReturn(threshold - 1)
+//            .thenReturn(threshold);
 
-        assertTrue(controller.canPass(node, 1));
+        assertTrue(controller.canPass(node, 30,true));
         assertFalse(controller.canPass(node, 1));
     }
 
@@ -40,5 +41,10 @@ public class DefaultControllerTest {
 
     @Test
     public void testCanPassForQpsMultiThread() {
+    }
+
+    public static void main( String[] args ) {
+        DefaultControllerTest test= new DefaultControllerTest();
+        test.testCanPassForQps();
     }
 }

@@ -24,22 +24,20 @@ import com.alibaba.csp.sentinel.node.Node;
  */
 public interface TrafficShapingController {
 
-    /**
-     * Check whether given resource entry can pass with provided count.
-     *
-     * @param node resource node
+    /***
+     * 当QPS超过任意规则的阈值后，新的请求就会被立即拒绝，拒绝方式为抛出FlowException
+     * @param node resource node，也就是 clusterNode
      * @param acquireCount count to acquire
-     * @param prioritized whether the request is prioritized
-     * @return true if the resource entry can pass; false if it should be blocked
+     * @param prioritized whether the request is prioritized 是否优先处理
+     * @return
      */
     boolean canPass(Node node, int acquireCount, boolean prioritized);
 
-    /**
-     * Check whether given resource entry can pass with provided count.
-     *
+    /***
+     * 当QPS超过任意规则的阈值后，新的请求就会被立即拒绝，拒绝方式为抛出FlowException
      * @param node resource node
      * @param acquireCount count to acquire
-     * @return true if the resource entry can pass; false if it should be blocked
+     * @return
      */
     boolean canPass(Node node, int acquireCount);
 }

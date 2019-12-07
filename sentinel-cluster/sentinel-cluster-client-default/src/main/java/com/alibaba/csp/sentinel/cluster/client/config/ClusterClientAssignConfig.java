@@ -26,6 +26,11 @@ public class ClusterClientAssignConfig {
 
     public ClusterClientAssignConfig() {}
 
+    /***
+     * 根据token server的port和host创建一个token client
+     * @param serverHost 服务端地址
+     * @param serverPort 服务端端口号
+     */
     public ClusterClientAssignConfig(String serverHost, Integer serverPort) {
         this.serverHost = serverHost;
         this.serverPort = serverPort;

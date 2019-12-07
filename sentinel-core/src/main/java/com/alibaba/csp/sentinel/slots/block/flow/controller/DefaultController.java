@@ -32,15 +32,25 @@ import com.alibaba.csp.sentinel.util.TimeUtil;
 public class DefaultController implements TrafficShapingController {
 
     private static final int DEFAULT_AVG_USED_TOKENS = 0;
-
+    /***
+     * 限流阈值
+     */
     private double count;
+    /**
+     * 限流类型 1-QPS 0-Thread
+     */
     private int grade;
 
     public DefaultController(double count, int grade) {
         this.count = count;
         this.grade = grade;
     }
-
+    /***
+     * 当QPS超过任意规则的阈值后，新的请求就会被立即拒绝，拒绝方式为抛出FlowException
+     * @param node resource node 也就是 clusterNode
+     * @param acquireCount count to acquire
+     * @returnargLine
+     */
     @Override
     public boolean canPass(Node node, int acquireCount) {
         return canPass(node, acquireCount, false);
@@ -48,10 +58,14 @@ public class DefaultController implements TrafficShapingController {
 
     /***
      * 当QPS超过任意规则的阈值后，新的请求就会被立即拒绝，拒绝方式为抛出FlowException
-     * @param node resource node
+     * @param node resource node 也就是 clusterNode
      * @param acquireCount count to acquire
      * @param prioritized whether the request is prioritized 是否优先处理
      * @return
+     * 1、获得已被获取的token数
+     *    a、如果限流方式是Thread线程类型的，则从clusterNode中获得当前持有资源的线程数
+     *    b、如果如果限流方式是QPS类型的，从clusterNode中获得当前持采样时间内的通过的qps
+     * 2、如果是QPS流量限制
      */
     @Override
     public boolean canPass(Node node, int acquireCount, boolean prioritized) {
@@ -62,14 +76,15 @@ public class DefaultController implements TrafficShapingController {
                 long waitInMs;
                 //获得当前时间
                 currentTime = TimeUtil.currentTimeMillis();
-                //可以先预支后面的令牌，并返回预支后需要等待的时间
+                //获得收满acquireCount个token需要等待的时间
                 waitInMs = node.tryOccupyNext(currentTime, acquireCount, count);
-                //如果因为预支而等待的时间小于
+                //如果需要等待的时间小于设置的超时时间
                 if (waitInMs < OccupyTimeoutProperty.getOccupyTimeout()) {
+                    //设置等待重新发起请求占用
                     node.addWaitingRequest(currentTime + waitInMs, acquireCount);
+                    //先登记占用的pass个数
                     node.addOccupiedPass(acquireCount);
                     sleep(waitInMs);
-
                     // PriorityWaitException indicates that the request will pass after waiting for {@link @waitInMs}.
                     //表示请求将被等待
                     throw new PriorityWaitException(waitInMs);
@@ -82,8 +97,8 @@ public class DefaultController implements TrafficShapingController {
 
     /**
      * 获得已被获取的token数
-     *      1、如果限流方式是Thread线程类型的，则直接获得当前线程数
-     *      2、如果如果限流方式是QPS类型的，则获得当前滑动窗口中的QPS
+     *      1、如果限流方式是Thread线程类型的，则从clusterNode中获得当前持有资源的线程数
+     *      2、如果如果限流方式是QPS类型的，从clusterNode中获得当前持采样时间内的通过的qps
      * @param node
      * @return
      */
@@ -91,7 +106,9 @@ public class DefaultController implements TrafficShapingController {
         if (node == null) {
             return DEFAULT_AVG_USED_TOKENS;
         }
-        return grade == RuleConstant.FLOW_GRADE_THREAD ? node.curThreadNum() : (int)(node.passQps());
+        return grade == RuleConstant.FLOW_GRADE_THREAD ?
+                node.curThreadNum() //从clusterNode中获得当前持有资源的线程数
+                : (int)(node.passQps());//从clusterNode中获得当前持采样时间内的通过的qps
     }
 
     private void sleep(long timeMillis) {

@@ -46,6 +46,9 @@ public class SentinelDefaultTokenServer implements ClusterTokenServer {
         InitExecutor.doInit();
     }
 
+    /***
+     * 初始化一个SentinelDefaultTokenServer，默认不是内嵌的
+     */
     public SentinelDefaultTokenServer() {
         this(false);
     }
@@ -61,6 +64,10 @@ public class SentinelDefaultTokenServer implements ClusterTokenServer {
         initNewServer();
     }
 
+    /***
+     * 初始化一个新的newServer
+     * 1、获得服务端的port。然后创建一个NettyTransportServer监听port
+     */
     private void initNewServer() {
         if (server != null) {
             return;

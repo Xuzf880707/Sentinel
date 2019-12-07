@@ -47,12 +47,28 @@ final class ClusterFlowChecker {
         }
     }
 
+    /**
+     *
+     * @param flowId
+     * @return
+     * 1、获得flowId对应的namespace
+     * 2、获得namespace对应的limiter
+     * 3、在limiter中判断当前的流量
+     */
     static boolean allowProceed(long flowId) {
         String namespace = ClusterFlowRuleManager.getNamespace(flowId);
         return GlobalRequestLimiter.tryPass(namespace);
     }
 
+    /***
+     * 集群资源限流检查
+     * @param rule
+     * @param acquireCount
+     * @param prioritized
+     * @return
+     */
     static TokenResult acquireClusterToken(/*@Valid*/ FlowRule rule, int acquireCount, boolean prioritized) {
+        //获得集群配置中的规则id
         Long id = rule.getClusterConfig().getFlowId();
 
         if (!allowProceed(id)) {

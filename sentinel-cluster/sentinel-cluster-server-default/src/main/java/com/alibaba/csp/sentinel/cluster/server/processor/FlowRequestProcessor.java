@@ -28,6 +28,7 @@ import com.alibaba.csp.sentinel.cluster.server.TokenServiceProvider;
 /**
  * @author Eric Zhao
  * @since 1.4.0
+ * 处理请求资源的请求
  */
 @RequestType(ClusterConstants.MSG_TYPE_FLOW)
 public class FlowRequestProcessor implements RequestProcessor<FlowRequestData, FlowTokenResponseData> {
@@ -35,8 +36,9 @@ public class FlowRequestProcessor implements RequestProcessor<FlowRequestData, F
     @Override
     public ClusterResponse<FlowTokenResponseData> processRequest(ClusterRequest<FlowRequestData> request) {
         TokenService tokenService = TokenServiceProvider.getService();
-
+        //获得flowId
         long flowId = request.getData().getFlowId();
+        //获得请求资源数
         int count = request.getData().getCount();
         boolean prioritized = request.getData().isPriority();
 

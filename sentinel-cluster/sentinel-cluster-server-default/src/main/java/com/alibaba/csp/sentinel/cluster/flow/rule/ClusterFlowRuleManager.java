@@ -103,6 +103,10 @@ public final class ClusterFlowRuleManager {
         registerPropertyInternal(defaultNamespace, defaultProperty);
     }
 
+    /***
+     * 设置一个可以提供限流规则配置的Supplier
+     * @param propertySupplier
+     */
     public static void setPropertySupplier(Function<String, SentinelProperty<List<FlowRule>>> propertySupplier) {
         AssertUtil.notNull(propertySupplier, "flow rule property supplier cannot be null");
         ClusterFlowRuleManager.propertySupplier = propertySupplier;
@@ -113,6 +117,13 @@ public final class ClusterFlowRuleManager {
      * The property is the source of cluster {@link FlowRule}s for a specific namespace.
      *
      * @param namespace namespace to register
+     */
+    /***
+     *
+     * @param namespace
+     * supplier会根据namespace 从配置中心获取相应的配置并初始化限流配置
+     * 1、supplier根据namespace加载相应的SentinelProperty
+     * 2、为namespace注册这个相应的SentinelProperty
      */
     public static void register2Property(String namespace) {
         AssertUtil.notEmpty(namespace, "namespace cannot be empty");
@@ -140,6 +151,11 @@ public final class ClusterFlowRuleManager {
      *
      * @param namespace namespace to register
      */
+    /***
+     *
+     * @param namespace
+     * 1、检查本地内存，是否为namespace配置过NamespaceFlowProperty，没有则初始化维护一个
+     */
     public static void registerPropertyIfAbsent(String namespace) {
         AssertUtil.notEmpty(namespace, "namespace cannot be empty");
         if (!PROPERTY_MAP.containsKey(namespace)) {
@@ -151,6 +167,15 @@ public final class ClusterFlowRuleManager {
         }
     }
 
+    /***
+     * 为namespace注册SentinelProperty
+     * @param namespace
+     * @param property
+     * 1、通过本地内存检查相应的namespace是否已经存在NamespaceFlowProperty，如果存在的话则先移除旧的NamespaceFlowProperty对应的监听器
+     * 2、为namespace配置一个新的监听器
+     * 3、监听器监听对应的namespace的变化
+     * 4、加载namespace对应的限流规则到内存里
+     */
     private static void registerPropertyInternal(/*@NonNull*/ String namespace, /*@Valid*/
                                                               SentinelProperty<List<FlowRule>> property) {
         NamespaceFlowProperty<FlowRule> oldProperty = PROPERTY_MAP.get(namespace);

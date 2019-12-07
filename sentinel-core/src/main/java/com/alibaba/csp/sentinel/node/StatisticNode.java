@@ -389,24 +389,31 @@ public class StatisticNode implements Node {
     }
 
     /***
-     *  1、获得整个滑动窗口数组中可以容纳的最大的查询数Q
-     *  2、计算每个滑动子窗口的时间跨度
+     *
+     *  返回需要等待的窗口数，才能凑够需要的 acquireCount，一个窗口一个窗口的累加，一直累加到够的情况下。否则就等待配置的时间
      * @param currentTime  current time millis. 当前时间
      * @param acquireCount tokens count to acquire. 需要获取的token数
-     * @param threshold    qps threshold. 当前滑动窗口的qps
+     * @param threshold    qps threshold. 当前限流规则的流量阈值
      * @return
      */
     @Override
     public long tryOccupyNext(long currentTime, int acquireCount, double threshold) {
-        //maxCount = 当前的qps*窗口的大小/1s (也就是一个滑动窗口里的最大数量)
-        double maxCount = threshold * IntervalProperty.INTERVAL / 1000;
-        long currentBorrow = rollingCounterInSecond.waiting();
-        if (currentBorrow >= maxCount) {
+        //maxCount = qps阈值 * 采样时间(获得一个采样窗口里所能容纳的最大的查询请求资源数)
+        double maxCount = threshold * IntervalProperty.INTERVAL / 1000;//10*1000/1000
+        //获得当前当前采样时间中正在等待的请求数
+        long currentBorrow = rollingCounterInSecond.waiting();//0
+        //如果正在等待的请求数已经超过整个滑动窗口的阈值，则直接拒绝当前请求
+        if (currentBorrow >= maxCount) {//返回超时等待的时间
             return OccupyTimeoutProperty.getOccupyTimeout();
         }
-
-        int windowLength = IntervalProperty.INTERVAL / SampleCountProperty.SAMPLE_COUNT;
-        long earliestTime = currentTime - currentTime % windowLength + windowLength - IntervalProperty.INTERVAL;
+        //当前采样时间内每个窗口的时间长度
+        int windowLength = IntervalProperty.INTERVAL / SampleCountProperty.SAMPLE_COUNT;//默认是500ms
+        //整个方法最终结果是想得到一个等待的时间，但是该等待时间也是有最大限制的。
+        //earliestTime=当前时间所处的窗口的结束时间-采样时间。相当于当前窗口作为某个采样时间的的最后一个窗口了，则这个采样的时间开始时间是earliestTime
+        //currentTime： 1575266347363
+        //earliestTime：1575266346500
+        //currentTime-IntervalProperty.INTERVAL=（earliestTime+currentTime % windowLength-currentTime - windowLength）
+        long earliestTime = (currentTime - currentTime % windowLength + windowLength) - IntervalProperty.INTERVAL;//
 
         int idx = 0;
         /*
@@ -414,16 +421,18 @@ public class StatisticNode implements Node {
          * since call rollingCounterInSecond.pass(). So in high concurrency, the following code may
          * lead more tokens be borrowed.
          */
+        //当前采样时间已通过的请求数
         long currentPass = rollingCounterInSecond.pass();
         while (earliestTime < currentTime) {
-            long waitInMs = idx * windowLength + windowLength - currentTime % windowLength;
+            long waitInMs = idx * windowLength + windowLength - currentTime % windowLength;//137
             if (waitInMs >= OccupyTimeoutProperty.getOccupyTimeout()) {
                 break;
-            }
+            }//计算earliestTime所在窗口的通过数（默认是上一个窗口的pass）
             long windowPass = rollingCounterInSecond.getWindowPass(earliestTime);
-            if (currentPass + currentBorrow + acquireCount - windowPass <= maxCount) {
+            //当前采样时间通过的请求数+当前采样时间等待的请求数+本次请求数-上一次窗口的请求=当前窗口的请求数<采样窗口的请求上限
+            if (currentPass + currentBorrow + acquireCount - windowPass <= maxCount) {//如果当前窗口通过的数目+当前请求的数目-上一个窗口的请求数
                 return waitInMs;
-            }
+            }//继续往后推
             earliestTime += windowLength;
             currentPass -= windowPass;
             idx++;

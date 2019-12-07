@@ -151,8 +151,11 @@ public final class ClusterServerConfigManager {
      * Load provided server namespace set to property in memory.
      *
      * @param namespaceSet valid namespace set
+     * 加载namespace对应的规则
+     * 会会触发 ServerNamespaceSetPropertyListener
      */
     public static void loadServerNamespaceSet(Set<String> namespaceSet) {
+        //
         namespaceSetProperty.updateValue(namespaceSet);
     }
 
@@ -160,6 +163,7 @@ public final class ClusterServerConfigManager {
      * Load provided server transport configuration to property in memory.
      *
      * @param config valid cluster server transport configuration
+     * 调用 ServerGlobalTransportPropertyListener 从注册中心加载配置
      */
     public static void loadGlobalTransportConfig(ServerTransportConfig config) {
         transportConfigProperty.updateValue(config);
@@ -208,6 +212,10 @@ public final class ClusterServerConfigManager {
             applyNamespaceSetChange(set);
         }
 
+        /***
+         * 加载namespace的限流规则，并进行监听
+         * @param set
+         */
         @Override
         public synchronized void configUpdate(Set<String> set) {
             // TODO: should debounce?
@@ -215,6 +223,15 @@ public final class ClusterServerConfigManager {
         }
     }
 
+    /***
+     *
+     * @param newSet
+     * 1、如果newSet为空，则使用默认的 default
+     * 2、获取旧的namespaceSet
+     *      a、如果新的newSet不包含旧的oldSet中的namespace，则移除
+     *      b、从supplier中获取namespace对应的配置信息property并进行注册
+     *      c、为每个namespace配置一个RequestLimiter，用于限制每个namespace的流量，默认是根据QPS
+     */
     private static void applyNamespaceSetChange(Set<String> newSet) {
         if (newSet == null) {
             return;
@@ -235,7 +252,7 @@ public final class ClusterServerConfigManager {
             // By default, the added namespace is the appName.
             newSet.add(ConfigSupplierRegistry.getNamespaceSupplier().get());
         }
-
+        //如果新的newset不包含旧的oldSet中的namespace，则移除
         Set<String> oldSet = ClusterServerConfigManager.namespaceSet;
         if (oldSet != null && !oldSet.isEmpty()) {
             for (String ns : oldSet) {
@@ -246,7 +263,7 @@ public final class ClusterServerConfigManager {
                 }
             }
         }
-
+        //从supplier中获取namespace对应的配置信息property并进行注册
         ClusterServerConfigManager.namespaceSet = newSet;
         for (String ns : newSet) {
             // Register the rule property if needed.
@@ -268,11 +285,22 @@ public final class ClusterServerConfigManager {
             applyConfig(config);
         }
 
+        /***
+         * 加载 servertransport配置
+         * @param config
+         */
         @Override
         public void configUpdate(ServerTransportConfig config) {
             applyConfig(config);
         }
 
+        /***
+         *
+         * @param config
+         * 1、校验config的端口号
+         * 2、设置空闲时间
+         * 3、更新token server
+         */
         private synchronized void applyConfig(ServerTransportConfig config) {
             if (!isValidTransportConfig(config)) {
                 RecordLog.warn(

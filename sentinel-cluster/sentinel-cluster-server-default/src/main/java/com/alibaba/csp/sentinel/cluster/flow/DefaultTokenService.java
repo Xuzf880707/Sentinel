@@ -34,7 +34,7 @@ import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowRule;
 public class DefaultTokenService implements TokenService {
     /***
      *
-     * @param ruleId the unique rule ID
+     * @param ruleId the unique rule ID 唯一的规则id
      * @param acquireCount token count to acquire
      * @param prioritized whether the request is prioritized
      * @return

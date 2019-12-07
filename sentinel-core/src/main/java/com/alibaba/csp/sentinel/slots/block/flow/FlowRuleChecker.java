@@ -120,18 +120,29 @@ public class FlowRuleChecker {
         return rule.getRater().canPass(selectedNode, acquireCount, prioritized);
     }
 
+    /***
+     *
+     * @param rule 限流规则
+     * @param context 上下文
+     * @param node DefaultNode
+     * @return
+     * 1、获得关联的资源
+     * 2、
+     */
     static Node selectReferenceNode(FlowRule rule, Context context, DefaultNode node) {
+        //获得请求资源
         String refResource = rule.getRefResource();
         int strategy = rule.getStrategy();
 
         if (StringUtil.isEmpty(refResource)) {
             return null;
         }
-
+        //限流方式是：根据关联流量限流
         if (strategy == RuleConstant.STRATEGY_RELATE) {
+            //返回集群关联的资源
             return ClusterBuilderSlot.getClusterNode(refResource);
         }
-
+        //如果是根据调用链路入口限流
         if (strategy == RuleConstant.STRATEGY_CHAIN) {
             if (!refResource.equals(context.getName())) {
                 return null;
@@ -155,7 +166,7 @@ public class FlowRuleChecker {
      * @return
      * 1、获得规则限制的app，默认是default
      * 2、获得限流策略
-     * 3、从上下文中获得档案调用者的app
+     * 3、从上下文中获得档案调用者的节点
      *      如果限制的app和当前的调用者equals，则返回调用这节点：OriginNode
      *      如果限制的app是default，且strategy=STRATEGY_DIRECT，则直接返回clusterNode
      */
@@ -164,13 +175,15 @@ public class FlowRuleChecker {
         String limitApp = rule.getLimitApp();//获得app，默认是default
         int strategy = rule.getStrategy();//获得限流策略：0-QPS或1-线程
         String origin = context.getOrigin();//获得调用者名称
-        //如果limitApp=调用者名称且
-        if (limitApp.equals(origin) && filterOrigin(origin)) {
+        //如果limitApp=调用者名称且调用者名称不是 default 和 other,则返回true
+        if (limitApp.equals(origin) //如果规则针对的就是orign调用者
+                && filterOrigin(origin)//如果调用者名称不是 default 和 other,则返回true
+                ) {
             if (strategy == RuleConstant.STRATEGY_DIRECT) {//如果是直接拒绝策略，则返回orignNode
                 // Matches limit origin, return origin statistic node.
                 return context.getOriginNode();
             }
-
+            //非直接拒绝策略的话，则返回关联的节点
             return selectReferenceNode(rule, context, node);
         } else if (RuleConstant.LIMIT_APP_DEFAULT.equals(limitApp)) {//如果limitApp是default
             if (strategy == RuleConstant.STRATEGY_DIRECT) {
@@ -179,8 +192,10 @@ public class FlowRuleChecker {
             }
 
             return selectReferenceNode(rule, context, node);
-        } else if (RuleConstant.LIMIT_APP_OTHER.equals(limitApp)
-            && FlowRuleManager.isOtherOrigin(origin, rule.getResource())) {
+        } else if (
+                RuleConstant.LIMIT_APP_OTHER.equals(limitApp)//如果是other的调用者
+            && FlowRuleManager.isOtherOrigin(origin, rule.getResource())//存在同时针对资源和other的限流规则
+                ) {
             if (strategy == RuleConstant.STRATEGY_DIRECT) {
                 return context.getOriginNode();
             }
@@ -202,8 +217,10 @@ public class FlowRuleChecker {
      * 1、获得当前节点所持有的 TokenService ，TokenService是规则判断的具体实现。
      *      作为内置的 token server 与服务在同一进程中启动，则返回 DefaultEmbeddedTokenServer
      *      如果本token client节点不是token server,则返回 DefaultClusterTokenClient
-     * 2、根据 flowId 和 acquireCount向 token服务端发起请求资源
-     * 3、处理请求响应的结果
+     * 2、如果无法通过集群获得TokenService，则降级为本地校验
+     * 3、根据 flowId 和 acquireCount向 token服务端发起请求资源。
+     *      flowId：是全局唯一的
+     * 4、处理请求响应的结果
      */
     private static boolean passClusterCheck(FlowRule rule, Context context, DefaultNode node, int acquireCount,
                                             boolean prioritized) {

@@ -66,6 +66,10 @@ public final class ClusterClientConfigManager {
         clientConfigProperty.removeListener(CONFIG_PROPERTY_LISTENER);
     }
 
+    /**
+     * 注册指定服务端的的配置，注册一个 ClientAssignPropertyListener
+     * @param property
+     */
     public static void registerServerAssignProperty(SentinelProperty<ClusterClientAssignConfig> property) {
         AssertUtil.notNull(property, "property cannot be null");
         synchronized (ASSIGN_PROPERTY_LISTENER) {
@@ -77,6 +81,10 @@ public final class ClusterClientConfigManager {
         }
     }
 
+    /**
+     * 注册客户端的配置，注册一个 ClientConfigPropertyListener
+     * @param property
+     */
     public static void registerClientConfigProperty(SentinelProperty<ClusterClientConfig> property) {
         AssertUtil.notNull(property, "property cannot be null");
         synchronized (CONFIG_PROPERTY_LISTENER) {
@@ -97,11 +105,16 @@ public final class ClusterClientConfigManager {
      * Apply new {@link ClusterClientConfig}, while the former config will be replaced.
      *
      * @param config new config to apply
+     * ClientConfigPropertyListener.configUpdate
      */
     public static void applyNewConfig(ClusterClientConfig config) {
         clientConfigProperty.updateValue(config);
     }
 
+    /***
+     * ClientAssignPropertyListener.configUpdate
+     * @param clusterClientAssignConfig
+     */
     public static void applyNewAssignConfig(ClusterClientAssignConfig clusterClientAssignConfig) {
         clientAssignProperty.updateValue(clusterClientAssignConfig);
     }
@@ -121,7 +134,12 @@ public final class ClusterClientConfigManager {
             applyConfig(config);
         }
 
+        /***
+         * 维护token server的连接信息：host和port
+         * @param config
+         */
         private synchronized void applyConfig(ClusterClientAssignConfig config) {
+            //检查port的合法性
             if (!isValidAssignConfig(config)) {
                 RecordLog.warn(
                     "[ClusterClientConfigManager] Invalid cluster client assign config, ignoring: " + config);
@@ -148,6 +166,10 @@ public final class ClusterClientConfigManager {
             applyConfig(config);
         }
 
+        /***
+         * 请求client的配置
+         * @param config
+         */
         @Override
         public void configUpdate(ClusterClientConfig config) {
             applyConfig(config);
@@ -166,12 +188,20 @@ public final class ClusterClientConfigManager {
         }
     }
 
+    /***
+     * 更新客户端的超时配置
+     * @param config
+     */
     private static void updateClientConfigChange(ClusterClientConfig config) {
         if (config.getRequestTimeout() != requestTimeout) {
             requestTimeout = config.getRequestTimeout();
         }
     }
 
+    /***
+     * 更新host和port的信息，并进行监听
+     * @param config
+     */
     private static void updateServerAssignment(/*@Valid*/ ClusterClientAssignConfig config) {
         String host = config.getServerHost();
         int port = config.getServerPort();
@@ -184,6 +214,11 @@ public final class ClusterClientConfigManager {
         serverPort = port;
     }
 
+    /***
+     * 校验端口号的合法性
+     * @param config
+     * @return
+     */
     public static boolean isValidAssignConfig(ClusterClientAssignConfig config) {
         return config != null && StringUtil.isNotBlank(config.getServerHost())
             && config.getServerPort() > 0
