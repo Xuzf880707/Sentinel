@@ -227,6 +227,7 @@ public final class ClusterFlowRuleManager {
      *
      * @param id rule ID
      * @return flow rule
+     * 根据规则id找到对应的规则
      */
     public static FlowRule getFlowRuleById(Long id) {
         if (!ClusterRuleUtil.validId(id)) {
@@ -235,6 +236,11 @@ public final class ClusterFlowRuleManager {
         return FLOW_RULES.get(id);
     }
 
+    /**
+     * 获得namespace对应的规则列表
+     * @param namespace
+     * @return
+     */
     public static Set<Long> getFlowIdSet(String namespace) {
         if (StringUtil.isEmpty(namespace)) {
             return new HashSet<>();

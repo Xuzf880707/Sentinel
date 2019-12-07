@@ -55,19 +55,27 @@ public final class ClusterClientConfigManager {
         bindPropertyListener();
     }
 
+    /***
+     * 绑定默认的监听器：
+     *  clientAssignProperty：ClientAssignPropertyListener
+     *  clientConfigProperty：ClientConfigPropertyListener
+     */
     private static void bindPropertyListener() {
         removePropertyListener();
         clientAssignProperty.addListener(ASSIGN_PROPERTY_LISTENER);
         clientConfigProperty.addListener(CONFIG_PROPERTY_LISTENER);
     }
 
+    /***
+     * 移除相应的监听器
+     */
     private static void removePropertyListener() {
         clientAssignProperty.removeListener(ASSIGN_PROPERTY_LISTENER);
         clientConfigProperty.removeListener(CONFIG_PROPERTY_LISTENER);
     }
 
     /**
-     * 注册指定服务端的的配置，注册一个 ClientAssignPropertyListener
+     * 为指定的SentinelProperty注册指定服务端的的配置，注册一个 ClientAssignPropertyListener
      * @param property
      */
     public static void registerServerAssignProperty(SentinelProperty<ClusterClientAssignConfig> property) {
@@ -82,7 +90,7 @@ public final class ClusterClientConfigManager {
     }
 
     /**
-     * 注册客户端的配置，注册一个 ClientConfigPropertyListener
+     * 为指定的SentinelProperty注册客户端的配置，注册一个 ClientConfigPropertyListener
      * @param property
      */
     public static void registerClientConfigProperty(SentinelProperty<ClusterClientConfig> property) {
@@ -96,6 +104,10 @@ public final class ClusterClientConfigManager {
         }
     }
 
+    /***
+     * 为SERVER_CHANGE_OBSERVERS 添加观察者
+     * @param observer
+     */
     public static void addServerChangeObserver(ServerChangeObserver observer) {
         AssertUtil.notNull(observer, "observer cannot be null");
         SERVER_CHANGE_OBSERVERS.add(observer);
@@ -105,7 +117,7 @@ public final class ClusterClientConfigManager {
      * Apply new {@link ClusterClientConfig}, while the former config will be replaced.
      *
      * @param config new config to apply
-     * ClientConfigPropertyListener.configUpdate
+     * 利用ClientConfigPropertyListener.configUpdate请求最新的client的配置
      */
     public static void applyNewConfig(ClusterClientConfig config) {
         clientConfigProperty.updateValue(config);
@@ -113,6 +125,7 @@ public final class ClusterClientConfigManager {
 
     /***
      * ClientAssignPropertyListener.configUpdate
+     * 利用ClientAssignPropertyListener.configUpdate请求最新的clientAssign的配置
      * @param clusterClientAssignConfig
      */
     public static void applyNewAssignConfig(ClusterClientAssignConfig clusterClientAssignConfig) {
