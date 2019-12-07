@@ -111,7 +111,7 @@ public class FlowRuleChecker {
      */
     private static boolean passLocalCheck(FlowRule rule, Context context, DefaultNode node, int acquireCount,
                                           boolean prioritized) {
-        //根据资源名称和规则获得相应的节点Node
+        //根据资源名称和规则获得相应的节点Node，通常返回的是OrginNode，调用者节点
         Node selectedNode = selectNodeByRequesterAndStrategy(rule, context, node);//获得clusterNode
         if (selectedNode == null) {
             return true;
@@ -177,9 +177,9 @@ public class FlowRuleChecker {
         String origin = context.getOrigin();//获得调用者名称
         //如果limitApp=调用者名称且调用者名称不是 default 和 other,则返回true
         if (limitApp.equals(origin) //如果规则针对的就是orign调用者
-                && filterOrigin(origin)//如果调用者名称不是 default 和 other,则返回true
+                && filterOrigin(origin)//如果调用者名称不是 default 和 other
                 ) {
-            if (strategy == RuleConstant.STRATEGY_DIRECT) {//如果是直接拒绝策略，则返回orignNode
+            if (strategy == RuleConstant.STRATEGY_DIRECT) {//如果是直接拒绝策略，则返回调用者节点orignNode
                 // Matches limit origin, return origin statistic node.
                 return context.getOriginNode();
             }
