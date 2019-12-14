@@ -94,6 +94,11 @@ public class InMemoryMetricsRepository implements MetricsRepository<MetricEntity
         return results;
     }
 
+    /**
+     *
+     * @param app application name
+     * @return
+     */
     @Override
     public List<String> listResourcesOfApp(String app) {
         List<String> results = new ArrayList<>();

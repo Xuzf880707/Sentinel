@@ -30,6 +30,7 @@ import com.alibaba.csp.sentinel.util.TimeUtil;
  * The message consists of key-value pair parameters.
  *
  * @author leyou
+ * 构建心跳消息
  */
 public class HeartbeatMessage {
 

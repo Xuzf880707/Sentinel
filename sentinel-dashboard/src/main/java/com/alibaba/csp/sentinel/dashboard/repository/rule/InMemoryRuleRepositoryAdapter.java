@@ -91,6 +91,11 @@ public abstract class InMemoryRuleRepositoryAdapter<T extends RuleEntity> implem
         return allRules.get(id);
     }
 
+    /***
+     * 根据机器查询 它的规则信息
+     * @param machineInfo
+     * @return
+     */
     @Override
     public List<T> findAllByMachine(MachineInfo machineInfo) {
         Map<Long, T> entities = machineRules.get(machineInfo);

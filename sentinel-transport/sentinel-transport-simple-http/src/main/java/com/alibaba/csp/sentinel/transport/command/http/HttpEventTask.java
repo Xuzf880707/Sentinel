@@ -55,6 +55,11 @@ public class HttpEventTask implements Runnable {
         socket.close();
     }
 
+    /***
+     * 1、接收并解析客户端请求
+     * 2、从request中解析CommandHandler
+     * 3、使用CommandHandler处理请求
+     */
     @Override
     public void run() {
         if (socket == null) {
@@ -141,7 +146,9 @@ public class HttpEventTask implements Runnable {
             // Find the matching command handler.
             CommandHandler<?> commandHandler = SimpleHttpCommandCenter.getHandler(commandName);
             if (commandHandler != null) {
+                //CommandHandler开始处理请求
                 CommandResponse<?> response = commandHandler.handle(request);
+                //格式化处理结果，并返回给client
                 handleResponse(response, printWriter, outputStream);
             } else {
                 // No matching command handler.
@@ -184,6 +191,13 @@ public class HttpEventTask implements Runnable {
         }
     }
 
+    /***
+     * 对CommandHandler处理的接轨进行处理格式化
+     * @param response
+     * @param printWriter
+     * @param rawOutputStream
+     * @throws Exception
+     */
     private void handleResponse(CommandResponse response, /*@NonNull*/ final PrintWriter printWriter,
         /*@NonNull*/ final OutputStream rawOutputStream) throws Exception {
         if (response.isSuccess()) {

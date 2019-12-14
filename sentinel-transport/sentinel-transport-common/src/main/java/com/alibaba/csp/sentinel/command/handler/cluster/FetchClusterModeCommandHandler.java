@@ -30,7 +30,11 @@ import com.alibaba.fastjson.JSONObject;
  */
 @CommandMapping(name = "getClusterMode", desc = "get cluster mode status")
 public class FetchClusterModeCommandHandler implements CommandHandler<String> {
-
+    /***
+     * 获得集群模式状态值
+     * @param request the request to handle
+     * @return
+     */
     @Override
     public CommandResponse<String> handle(CommandRequest request) {
         JSONObject res = new JSONObject()

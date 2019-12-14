@@ -29,6 +29,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+/***
+ * 客户端通过心跳将自己注册到sentinel服务端
+ */
 @Controller
 @RequestMapping(value = "/registry", produces = MediaType.APPLICATION_JSON_VALUE)
 public class MachineRegistryController {
@@ -38,6 +41,16 @@ public class MachineRegistryController {
     @Autowired
     private AppManagement appManagement;
 
+    /***
+     *
+     * @param app app引用
+     * @param version 版本号
+     * @param v
+     * @param hostname 客户端名称
+     * @param ip 客户端ip
+     * @param port 客户端端口号
+     * @return
+     */
     @ResponseBody
     @RequestMapping("/machine")
     public Result<?> receiveHeartBeat(String app, Long version, String v, String hostname, String ip, Integer port) {

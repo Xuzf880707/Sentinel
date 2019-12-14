@@ -63,6 +63,14 @@ public class AuthorityRuleController {
     @Autowired
     private AuthService<HttpServletRequest> authService;
 
+    /***
+     * 查询某台机器的所有的白名单规则
+     * @param request
+     * @param app
+     * @param ip
+     * @param port
+     * @return
+     */
     @GetMapping("/rules")
     public Result<List<AuthorityRuleEntity>> apiQueryAllRulesForMachine(HttpServletRequest request,
                                                                         @RequestParam String app,
@@ -118,6 +126,12 @@ public class AuthorityRuleController {
         return null;
     }
 
+    /***
+     * 添加一条规则，并存在到内存里
+     * @param request
+     * @param entity
+     * @return
+     */
     @PostMapping("/rule")
     public Result<AuthorityRuleEntity> apiAddAuthorityRule(HttpServletRequest request,
                                                            @RequestBody AuthorityRuleEntity entity) {

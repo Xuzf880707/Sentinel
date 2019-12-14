@@ -44,6 +44,11 @@ public class AppController {
     @Autowired
     private AppManagement appManagement;
 
+    /***
+     * 查询应用列表
+     * @param request
+     * @return
+     */
     @GetMapping("/names.json")
     public Result<List<String>> queryApps(HttpServletRequest request) {
         return Result.ofSuccess(appManagement.getAppNames());

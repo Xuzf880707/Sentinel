@@ -65,7 +65,7 @@ public class SimpleHttpHeartbeatSender implements HeartbeatSender {
         if (addr == null) {
             return false;
         }
-
+        //向dashboard请求/registry/machine，会将客户端注册到dashbord
         SimpleHttpRequest request = new SimpleHttpRequest(addr, HEARTBEAT_PATH);
         request.setParams(heartBeat.generateCurrentMessage());
         try {

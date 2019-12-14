@@ -34,13 +34,13 @@ public class FetchActiveRuleCommandHandler implements CommandHandler<String> {
     @Override
     public CommandResponse<String> handle(CommandRequest request) {
         String type = request.getParam("type");
-        if ("flow".equalsIgnoreCase(type)) {
+        if ("flow".equalsIgnoreCase(type)) {//如果是限流的话，返回限流规则
             return CommandResponse.ofSuccess(JSON.toJSONString(FlowRuleManager.getRules()));
-        } else if ("degrade".equalsIgnoreCase(type)) {
+        } else if ("degrade".equalsIgnoreCase(type)) {//如果是熔断的话，返回熔断规则
             return CommandResponse.ofSuccess(JSON.toJSONString(DegradeRuleManager.getRules()));
-        } else if ("authority".equalsIgnoreCase(type)) {
+        } else if ("authority".equalsIgnoreCase(type)) {//如果是白名单的话，返回白名单规则
             return CommandResponse.ofSuccess(JSON.toJSONString(AuthorityRuleManager.getRules()));
-        } else if ("system".equalsIgnoreCase(type)) {
+        } else if ("system".equalsIgnoreCase(type)) {//如果是系统规则的话，返回系统规则
             return CommandResponse.ofSuccess(JSON.toJSONString(SystemRuleManager.getRules()));
         } else {
             return CommandResponse.ofFailure(new IllegalArgumentException("invalid type"));

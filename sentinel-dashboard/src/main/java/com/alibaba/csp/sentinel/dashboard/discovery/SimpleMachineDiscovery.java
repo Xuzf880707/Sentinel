@@ -34,6 +34,11 @@ public class SimpleMachineDiscovery implements MachineDiscovery {
 
     private final ConcurrentMap<String, AppInfo> apps = new ConcurrentHashMap<>();
 
+    /***
+     * 客户端在发送心跳时，将自己注册到服务端内存里
+     * @param machineInfo
+     * @return
+     */
     @Override
     public long addMachine(MachineInfo machineInfo) {
         AssertUtil.notNull(machineInfo, "machineInfo cannot be null");

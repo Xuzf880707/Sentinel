@@ -57,6 +57,14 @@ public class DegradeController {
     @Autowired
     private AuthService<HttpServletRequest> authService;
 
+    /***
+     *  向某个客户端机器发送查询熔断规则请求
+     * @param request
+     * @param app 应用名称
+     * @param ip 客户端ip
+     * @param port 客户端端口号
+     * @return
+     */
     @ResponseBody
     @RequestMapping("/rules.json")
     public Result<List<DegradeRuleEntity>> queryMachineRules(HttpServletRequest request, String app, String ip, Integer port) {
@@ -82,6 +90,19 @@ public class DegradeController {
         }
     }
 
+    /***
+     * 添加一条新的熔断规则，存储到内存里
+     * @param request
+     * @param app
+     * @param ip
+     * @param port
+     * @param limitApp
+     * @param resource
+     * @param count
+     * @param timeWindow
+     * @param grade
+     * @return
+     */
     @ResponseBody
     @RequestMapping("/new.json")
     public Result<DegradeRuleEntity> add(HttpServletRequest request,

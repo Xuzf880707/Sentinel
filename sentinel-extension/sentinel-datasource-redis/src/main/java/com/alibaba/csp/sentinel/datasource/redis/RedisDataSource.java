@@ -71,20 +71,21 @@ public class RedisDataSource<T> extends AbstractDataSource<String, T> {
      */
     public RedisDataSource(RedisConnectionConfig connectionConfig, String ruleKey, String channel,
                            Converter<String, T> parser) {
-        super(parser);
+        super(parser);//初始化 数据类型转换器，用于将S转成T
         AssertUtil.notNull(connectionConfig, "Redis connection config can not be null");
         AssertUtil.notEmpty(ruleKey, "Redis ruleKey can not be empty");
         AssertUtil.notEmpty(channel, "Redis subscribe channel can not be empty");
-        this.redisClient = getRedisClient(connectionConfig);
+        this.redisClient = getRedisClient(connectionConfig);//获得客户端连接
         this.ruleKey = ruleKey;
-        loadInitialConfig();
-        subscribeFromChannel(channel);
+        loadInitialConfig();//初始化规则配置
+        subscribeFromChannel(channel);//订阅channel
     }
 
     /**
      * Build Redis client fromm {@code RedisConnectionConfig}.
      *
      * @return a new {@link RedisClient}
+     * 根据配置用于获得redis的客户端连接
      */
     private RedisClient getRedisClient(RedisConnectionConfig connectionConfig) {
         if (connectionConfig.getRedisSentinels().size() == 0) {
@@ -131,6 +132,10 @@ public class RedisDataSource<T> extends AbstractDataSource<String, T> {
         return RedisClient.create(sentinelRedisUriBuilder.build());
     }
 
+    /***
+     * 监听读取管道，如果管道有新的消息的话，则会通过 通知 DelegatingRedisPubSubListener监听器
+     * @param channel
+     */
     private void subscribeFromChannel(String channel) {
         StatefulRedisPubSubConnection<String, String> pubSubConnection = redisClient.connectPubSub();
         RedisPubSubAdapter<String, String> adapterListener = new DelegatingRedisPubSubListener();
@@ -139,17 +144,25 @@ public class RedisDataSource<T> extends AbstractDataSource<String, T> {
         sync.subscribe(channel);
     }
 
+    /***
+     * 初始化配置
+     */
     private void loadInitialConfig() {
         try {
+            //从redis中读取规则配置，并转换成T
             T newValue = loadConfig();
             if (newValue == null) {
                 RecordLog.warn("[RedisDataSource] WARN: initial config is null, you may have to check your data source");
             }
+            //将加载的资源通过 SentinelProperty 绑定的 Listener更新到内存里
             getProperty().updateValue(newValue);
         } catch (Exception ex) {
             RecordLog.warn("[RedisDataSource] Error when loading initial config", ex);
         }
     }
+    /***
+     *  从redis中读取规则配置
+     */
 
     @Override
     public String readSource() {
@@ -165,11 +178,19 @@ public class RedisDataSource<T> extends AbstractDataSource<String, T> {
         redisClient.shutdown();
     }
 
+    /**
+     * DelegatingRedisPubSubListener 监听器
+     */
     private class DelegatingRedisPubSubListener extends RedisPubSubAdapter<String, String> {
 
         DelegatingRedisPubSubListener() {
         }
 
+        /***
+         * 将消息通过用转换器转换后，通过 SentinelProperty 绑定的 Listener更新到内存里
+         * @param channel
+         * @param message
+         */
         @Override
         public void message(String channel, String message) {
             RecordLog.info(String.format("[RedisDataSource] New property value received for channel %s: %s", channel, message));

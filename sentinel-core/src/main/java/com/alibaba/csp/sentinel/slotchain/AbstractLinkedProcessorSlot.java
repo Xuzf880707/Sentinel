@@ -53,7 +53,7 @@ public abstract class AbstractLinkedProcessorSlot<T> implements ProcessorSlot<T>
     @Override
     public void fireExit(Context context, ResourceWrapper resourceWrapper, int count, Object... args) {
         if (next != null) {
-            next.exit(context, resourceWrapper, count, args);
+            next.exit(context,  resourceWrapper, count, args);
         }
     }
 

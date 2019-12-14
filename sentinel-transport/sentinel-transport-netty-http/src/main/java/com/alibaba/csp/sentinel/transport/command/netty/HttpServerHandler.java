@@ -60,6 +60,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
  * Note: HTTP chunked is not tested!
  *
  * @author Eric Zhao
+ * 用于接触并处理netty client的请求
  */
 public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
 

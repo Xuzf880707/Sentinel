@@ -45,6 +45,11 @@ public final class HttpServer {
 
     final static Map<String, CommandHandler> handlerMap = new ConcurrentHashMap<String, CommandHandler>();
 
+    /***
+     *
+     * @throws Exception
+     * 创建一个netty 服务端，用于监听8719端口
+     */
     public void start() throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -70,6 +75,7 @@ public final class HttpServer {
             ChannelFuture channelFuture = null;
             // loop for an successful binding
             while (true) {
+                //随机生成一个编号，创建server
                 int newPort = getNewPort(port, retryCount);
                 try {
                     channelFuture = b.bind(newPort).sync();

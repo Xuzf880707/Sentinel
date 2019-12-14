@@ -137,6 +137,12 @@ public class FlowControllerV1 {
         return null;
     }
 
+    /**
+     * 创建题条限流规则
+     * @param request
+     * @param entity
+     * @return
+     */
     @PostMapping("/rule")
     public Result<FlowRuleEntity> apiAddFlowRule(HttpServletRequest request, @RequestBody FlowRuleEntity entity) {
         AuthUser authUser = authService.getAuthUser(request);

@@ -27,6 +27,7 @@ import com.alibaba.fastjson.JSON;
 
 /**
  * @author qinan.qn
+ * 根据资源名称获得clusterNode节点
  */
 @CommandMapping(name = "clusterNodeById", desc = "get clusterNode VO by id, request param: id={resourceName}")
 public class FetchClusterNodeByIdCommandHandler implements CommandHandler<String> {

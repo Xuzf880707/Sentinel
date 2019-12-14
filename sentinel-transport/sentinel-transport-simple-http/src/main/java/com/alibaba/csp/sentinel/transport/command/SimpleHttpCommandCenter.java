@@ -62,6 +62,11 @@ public class SimpleHttpCommandCenter implements CommandCenter {
 
     private ServerSocket socketReference;
 
+    /***
+     * 启动之前调用
+     * @throws Exception
+     * 1、加载并注册所有的CommandHandler，用于处理不同的request
+     */
     @Override
     @SuppressWarnings("rawtypes")
     public void beforeStart() throws Exception {
@@ -70,6 +75,13 @@ public class SimpleHttpCommandCenter implements CommandCenter {
         registerCommands(handlers);
     }
 
+    /***
+     *
+     * @throws Exception
+     * 1、创建一个线程池执行器
+     * 2、创建一个线程，该线程负责创建一个ServerSocket，并监听8719端口
+     * 3、当ServerSocket接收到请求后，后把request丢给ServerThread处理
+     */
     @Override
     public void start() throws Exception {
         int nThreads = Runtime.getRuntime().availableProcessors();
@@ -98,11 +110,13 @@ public class SimpleHttpCommandCenter implements CommandCenter {
             @Override
             public void run() {
                 boolean success = false;
+                // 获取可用的端口用以创建一个ServerSocket
                 ServerSocket serverSocket = getServerSocketFromBasePort(port);
 
                 if (serverSocket != null) {
                     CommandCenterLog.info("[CommandCenter] Begin listening at port " + serverSocket.getLocalPort());
                     socketReference = serverSocket;
+                    // 在主线程中启动ServerThread用以接收socket请求
                     executor.submit(new ServerThread(serverSocket));
                     success = true;
                     port = serverSocket.getLocalPort();
@@ -180,6 +194,9 @@ public class SimpleHttpCommandCenter implements CommandCenter {
             setName("sentinel-courier-server-accept-thread");
         }
 
+        /**
+         * 通过BIO创建一个ServerSocket，用于接触客户端的请求
+         */
         @Override
         public void run() {
             while (true) {
@@ -187,6 +204,7 @@ public class SimpleHttpCommandCenter implements CommandCenter {
                 try {
                     socket = this.serverSocket.accept();
                     setSocketSoTimeout(socket);
+                    //将client的请求封装成HttpEventTask处理
                     HttpEventTask eventTask = new HttpEventTask(socket);
                     bizExecutor.submit(eventTask);
                 } catch (Exception e) {

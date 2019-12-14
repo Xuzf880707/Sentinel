@@ -53,6 +53,17 @@ public class MetricController {
     @Autowired
     private MetricsRepository<MetricEntity> metricStore;
 
+    /***
+     * 查询应用实时监控
+     * @param app
+     * @param pageIndex
+     * @param pageSize
+     * @param desc
+     * @param startTime
+     * @param endTime
+     * @param searchKey
+     * @return
+     */
     @ResponseBody
     @RequestMapping("/queryTopResourceMetric.json")
     public Result<?> queryTopResourceMetric(final String app,
@@ -81,6 +92,7 @@ public class MetricController {
         if (startTime == null) {
             startTime = endTime - 1000 * 60 * 5;
         }
+        //时间跨度不能超过1h
         if (endTime - startTime > maxQueryIntervalMs) {
             return Result.ofFail(-1, "time intervalMs is too big, must <= 1h");
         }

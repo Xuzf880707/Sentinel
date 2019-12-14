@@ -33,6 +33,7 @@ import java.util.Map;
  *
  * @author houyi
  * @since 1.5.0
+ * 主要是用于获得所有可用的 CommandHandler
  */
 @CommandMapping(name = "api", desc = "get all available command handlers")
 public class ApiCommandHandler implements CommandHandler<String> {
@@ -45,6 +46,7 @@ public class ApiCommandHandler implements CommandHandler<String> {
             return CommandResponse.ofSuccess(array.toJSONString());
         }
         for (CommandHandler handler : handlers.values()) {
+            //获得持有CommandMapping注解的CommandHandler
             CommandMapping commandMapping = handler.getClass().getAnnotation(CommandMapping.class);
             if (commandMapping == null) {
                 continue;

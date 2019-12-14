@@ -46,6 +46,13 @@ public class AuthController {
     @Value("${auth.password:sentinel}")
     private String authPassword;
 
+    /**
+     * 用户登录，默认是 sentinel/sentinel
+     * @param request
+     * @param username
+     * @param password
+     * @return
+     */
     @PostMapping("/login")
     public Result login(HttpServletRequest request, String username, String password) {
         if (StringUtils.isNotBlank(DashboardConfig.getAuthUsername())) {
@@ -72,6 +79,11 @@ public class AuthController {
         return Result.ofSuccess(authUser);
     }
 
+    /**
+     * 退出登录
+     * @param request
+     * @return
+     */
     @RequestMapping(value = "/logout", method = RequestMethod.POST)
     public Result logout(HttpServletRequest request) {
         request.getSession().invalidate();
